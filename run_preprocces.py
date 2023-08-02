@@ -3,15 +3,10 @@ import mne
 import os
 import mne 
 import numpy as np
-from mne.preprocessing import ICA
-import matplotlib.pyplot as plt
-from sklearn import metrics
-from sklearn.model_selection import train_test_split
 from eeg import Eeg as eeg
 import pandas as pd
 from mne_preproccessing import mne_preprocessing
 from mne import concatenate_epochs
-from sklearn.utils import shuffle
 from tqdm import tqdm
 import pickle
 #%% function that helps us load the data into lists of that data.
@@ -70,9 +65,9 @@ def load_csv_series(path, base_filename, start=1, end=10, df_list=None,from_fold
     return df_list
 #%% define rather you want to create plot, or save a pickle of  
 # all the epochs list ,if to remove bad records from  the new helmet records.
-create_plots = True
+create_plots = False
 save_pickle = False
-remove_new_bad_records = True
+remove_new_bad_records = False
 indexes_to_remove = [0,2,7,14] #indexes of bad records [1,3,8,15]
 
 #%% Load your data
@@ -97,6 +92,11 @@ event_table_old = load_csv_series(path_old, base_filename, start=17, end=25, df_
 eeg_data_list_old = []
 epoched_data_list_old = []
 #%% pre proceessing the data - creating plots, and epochs %%%%
+#set the reject trails critertia 
+reject = {'eeg': 300} # 300 µV
+mean_list_old = []
+mean_list_new = []
+#reject = None
 
 #loop over all the files in the new helmet 
 for i ,data in tqdm(enumerate(data_list_new)):    
@@ -104,7 +104,7 @@ for i ,data in tqdm(enumerate(data_list_new)):
     #   Sfreq = 125, notch filter = 50 , band pass filter = min :0.5, max :40
     eeg_data_list_new.append(mne_preprocessing(data,event_table_new[i],new = True))
     #create list of epoched data - segmented and divted into trials : Idle, Target, Non Target
-    epoched_data_list_new.append(eeg_data_list_new[i].epoch_it())
+    epoched_data_list_new.append(eeg_data_list_new[i].epoch_it(reject = reject))
     
     if create_plots:
         #create plots and save them - no show! 
@@ -113,6 +113,7 @@ for i ,data in tqdm(enumerate(data_list_new)):
         # created the plots for each expiriment already so not relevant now.
         eeg_data_list_new[i].all_plots(dir = directory_name , exp_num = i+1,epochs= epoched_data_list_new[i]) #dont have to use the epochs argument  
     
+
 #loop over all the files in the OLD helmet
 for i ,data in tqdm(enumerate(data_list_old)):    
     #create list of our preproccsing object using mne objects of mne, filtered already by defult of the class:
@@ -127,14 +128,17 @@ for i ,data in tqdm(enumerate(data_list_old)):
         # create the plots and save them using a function the the class
         eeg_data_list_old[i].all_plots(dir = directory_name , exp_num = i+1,epochs= epoched_data_list_old[i]) #dont have to use the epochs argument  
    
-
-#%% create a concatenedted object of all the epoched data for both new and old helmet
-all_epoched_new= concatenate_epochs(epoched_data_list_new)
-all_epoched_old = concatenate_epochs(epoched_data_list_old)
 if remove_new_bad_records:
     #remove bad records
     # Sort indexes in descending order to avoid shifting
     epoched_data_list_new = [ele for i, ele in enumerate(epoched_data_list_new) if i not in indexes_to_remove]
+
+#%% create a concatenedted object of all the epoched data for both new and old helmet
+
+
+    
+all_epoched_new= concatenate_epochs(epoched_data_list_new)
+all_epoched_old = concatenate_epochs(epoched_data_list_old)
 
 #%%create plots over all the epochs together for both helmets
 #new helmet:
@@ -158,3 +162,17 @@ if save_pickle:
     with open('new_helmets_epochs.pkl', 'wb') as f:
         pickle.dump(epoched_data_list_new, f)
 print("Done")
+
+
+
+"""
+some tests        
+"""
+
+# for i in range(len(epoched_data_list_new)):
+#     mean_list_new.append(epoched_data_list_new[i].average()._data.transpose().mean(axis = 0))
+# mean_new_df = pd.DataFrame(mean_list_new, columns = epoched_data_list_new[0].ch_names[:-1])
+
+# for i in range(len(epoched_data_list_old)):
+#     mean_list_old.append(epoched_data_list_old[i].average()._data.transpose().mean(axis = 0))
+# mean_old_df = pd.DataFrame(mean_list_old, columns = epoched_data_list_old[0].ch_names[:-1])
