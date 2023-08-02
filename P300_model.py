@@ -153,9 +153,9 @@ class P300_model:
                 # Save the DataFrame to a CSV file after each combination
                 results_df.to_csv('grid_search_results.csv', index=False)
 
-    def train_final_model(self, hyperparameters, relevant_channels=None):
+    def train_final_model(self, clf, hyperparameters, relevant_channels=None):
         # Create the Random Forest model
-        self.clf = RandomForestClassifier(**hyperparameters)
+        self.clf = clf.set_params(**hyperparameters)
         self.relevant_channels = relevant_channels
         self.num_channels = len(relevant_channels)
 

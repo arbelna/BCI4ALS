@@ -10,18 +10,20 @@ with open('new_helmets_epochs.pkl', 'rb') as f:
 loo = LeaveOneOut()
 indexes = [i for i in range(12)]  # Assuming that new_helmets_rec is a list or something with len
 
-hyperparameters = {'n_estimators': 2000,
+hyperparameters = {'n_estimators': 1500,
                    'criterion': 'log_loss',
                    'max_depth': 20,
-                   'max_features': None
+                   'max_features': None,
+                   'n_jobs': -1
                    }
-relevant_channels = [1, 2, 4]
+relevant_channels = [0, 5, 6, 7, 8]
 
 new_helmet_model = P300_model()
 
 # DataFrame to hold the results
 results_df = pd.DataFrame(
-    columns=["test_index", "happy_predicted_classes", "happy_trials", "happy_chance", "sad_predicted_classes", "sad_trials",
+    columns=["test_index", "happy_predicted_classes", "happy_predicted_classes_percent", "happy_trials",
+             "happy_chance", "sad_predicted_classes", "sad_predicted_classes_percent", "sad_trials",
              "sad_chance"])
 
 for train_indexes, test_indexes in loo.split(indexes):
@@ -40,9 +42,11 @@ for train_indexes, test_indexes in loo.split(indexes):
     results_df = results_df.append({
         "test_index": test_new_helmet_indexes[0],
         "happy_predicted_classes": happy_predicted_classes,
+        "happy_predicted_classes_percent": sum(happy_predicted_classes)/len(happy_predicted_classes),
         "happy_trials": happy_trials,
         "happy_chance": happy_chance,
         "sad_predicted_classes": sad_predicted_classes,
+        "sad_predicted_classes_percent": sum(sad_predicted_classes) / len(sad_predicted_classes),
         "sad_trials": sad_trials,
         "sad_chance": sad_chance
     }, ignore_index=True)
