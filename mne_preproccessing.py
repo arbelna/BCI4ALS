@@ -137,7 +137,7 @@ class mne_preprocessing():
             ch_types = ["eeg","eeg","eeg","eeg", "eeg", "eeg", "eeg", "eeg", "eeg", "eeg", "eeg", "eeg","eeg" ,"stim"]
         return relevant_data , ch_names , ch_types,markers
     
-    def epoch_it(self,tmin = -1.2 ,tmax = 0.8 ,baseline = (-1.2, 0),preload = True , reject = None):
+    def epoch_it(self,tmin = -1 ,tmax = 0.8 ,baseline = (-1, 0),preload = True , reject = None):
         """
         this function creates an epochs object from the filtered data and the event table
         as defult returns and object deviding the data to Idle, Target and Non-Target epochs'

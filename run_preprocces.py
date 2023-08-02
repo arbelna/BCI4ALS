@@ -135,13 +135,6 @@ if remove_new_bad_records:
 
 #%% create a concatenedted object of all the epoched data for both new and old helmet
 
-# for i in range(len(epoched_data_list_new)):
-#     mean_list_new.append(epoched_data_list_new[i].average()._data.transpose().mean(axis = 0))
-# mean_new_df = pd.DataFrame(mean_list_new, columns = epoched_data_list_new[0].ch_names[:-1])
-
-# for i in range(len(epoched_data_list_old)):
-#     mean_list_old.append(epoched_data_list_old[i].average()._data.transpose().mean(axis = 0))
-# mean_old_df = pd.DataFrame(mean_list_old, columns = epoched_data_list_old[0].ch_names[:-1])
 
     
 all_epoched_new= concatenate_epochs(epoched_data_list_new)
@@ -169,3 +162,17 @@ if save_pickle:
     with open('new_helmets_epochs.pkl', 'wb') as f:
         pickle.dump(epoched_data_list_new, f)
 print("Done")
+
+
+
+"""
+some tests        
+"""
+
+# for i in range(len(epoched_data_list_new)):
+#     mean_list_new.append(epoched_data_list_new[i].average()._data.transpose().mean(axis = 0))
+# mean_new_df = pd.DataFrame(mean_list_new, columns = epoched_data_list_new[0].ch_names[:-1])
+
+# for i in range(len(epoched_data_list_old)):
+#     mean_list_old.append(epoched_data_list_old[i].average()._data.transpose().mean(axis = 0))
+# mean_old_df = pd.DataFrame(mean_list_old, columns = epoched_data_list_old[0].ch_names[:-1])
