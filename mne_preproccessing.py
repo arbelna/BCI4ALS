@@ -2,10 +2,7 @@ import mne
 import os
 import mne 
 import numpy as np
-from mne.preprocessing import ICA
 import matplotlib.pyplot as plt
-from sklearn import metrics
-from sklearn.model_selection import train_test_split
 from eeg import Eeg as eeg
 import pandas as pd
 
@@ -140,7 +137,7 @@ class mne_preprocessing():
             ch_types = ["eeg","eeg","eeg","eeg", "eeg", "eeg", "eeg", "eeg", "eeg", "eeg", "eeg", "eeg","eeg" ,"stim"]
         return relevant_data , ch_names , ch_types,markers
     
-    def epoch_it(self,tmin = -0.2 ,tmax = 0.8 ,baseline = (-0.2, 0),preload = True):
+    def epoch_it(self,tmin = -1.2 ,tmax = 0.8 ,baseline = (-1.2, 0),preload = True , reject = None):
         """
         this function creates an epochs object from the filtered data and the event table
         as defult returns and object deviding the data to Idle, Target and Non-Target epochs'
@@ -156,8 +153,11 @@ class mne_preprocessing():
         #get evenets and event_id from the annotations
         events, event_id = mne.events_from_annotations(self.raw_data) 
         #create the epochs object
-        epochs = mne.Epochs(self.filterd_data, events, event_id, tmin = tmin, tmax = tmax ,baseline = baseline, preload = preload)
+        epochs = mne.Epochs(self.filterd_data, events, event_id, tmin = tmin,
+                            tmax = tmax ,baseline = baseline, preload = preload,reject = reject)
         #set the epochs object and return it, so we can use it as a function or as an attribute
+        if reject is not None:
+            epochs.drop_bad()
         self.epochs = epochs
         return epochs
 

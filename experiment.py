@@ -1,6 +1,5 @@
 # importing relevant libraries
 from tkinter import Tk, Entry, Label, Button
-import tkinter as tk
 from random import randrange
 from psychopy import visual, core, logging, sound, event
 import psychtoolbox as ptb
@@ -8,11 +7,10 @@ import random
 import pandas as pd
 from eeg import Eeg
 import time
-import brainflow
 import numpy as np
 import pickle
 import os
-from PIL import Image, ImageTk
+
 
 class Experiment:
     def __init__(self, eeg, michael=False):
