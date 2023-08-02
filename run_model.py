@@ -6,12 +6,12 @@ with open('new_helmets_epochs.pkl', 'rb') as f:
 
 test_new_helmet_indexes = [4, 6, 9, 10]
 train_new_helmet_indexes = [0, 1, 2, 3, 5, 7, 8, 11]
-hyperparameters = {'n_estimators': 1500,
+hyperparameters = {'n_estimators': 2000,
                    'criterion': 'log_loss',
-                   'max_depth': 15,
+                   'max_depth': 20,
                    'max_features': None
                    }
-relevant_channels = [1, 2, 6]
+relevant_channels = [1, 2, 4]
 
 new_helmet_model = P300_model()
 new_helmet_model.create_x_y(new_helmets_rec, train_new_helmet_indexes, new=True)

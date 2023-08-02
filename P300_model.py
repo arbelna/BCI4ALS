@@ -1,17 +1,8 @@
 # Load libraries
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
-from sklearn.linear_model import SGDClassifier
-from sklearn.svm import LinearSVC
-from sklearn.svm import SVC
-from sklearn.metrics import make_scorer, accuracy_score, confusion_matrix, ConfusionMatrixDisplay, f1_score
 from sklearn.model_selection import train_test_split, GridSearchCV
-import matplotlib.pyplot as plt
-from collections import Counter
-# from psychopy import visual
 from itertools import combinations
-
 from sklearn.ensemble import RandomForestClassifier
 from mne import concatenate_epochs
 from tqdm import tqdm
@@ -38,6 +29,7 @@ class P300_model:
         self.X_Test_sad = None
         self.clf = None
         self.num_channels = None
+        self.relevant_channels = None
 
     def create_x_y(self, data, blocks, train=True, new=False):
         """
@@ -68,9 +60,10 @@ class P300_model:
             self.y_Train = np.hstack((np.ones(target_train.shape[1]), np.zeros(non_target_train.shape[1])))
 
         else:
-            train = get_relevant_blocks(data, blocks)
-            target_test = train['target']._get_data()
-            non_target_test = train['non-target']._get_data()
+            test = get_relevant_blocks(data, blocks)
+            test = concatenate_epochs(test)
+            target_test = test['target']._get_data()
+            non_target_test = test['non-target']._get_data()
             if new:
                 target_test = target_test[:, :9, :]
                 non_target_test = non_target_test[:, :9, :]
@@ -161,9 +154,9 @@ class P300_model:
                 results_df.to_csv('grid_search_results.csv', index=False)
 
     def train_final_model(self, hyperparameters, relevant_channels=None):
-
         # Create the Random Forest model
         self.clf = RandomForestClassifier(**hyperparameters)
+        self.relevant_channels = relevant_channels
         self.num_channels = len(relevant_channels)
 
         if relevant_channels is not None:
@@ -178,8 +171,9 @@ class P300_model:
         self.clf.fit(self.X_Train, self.y_Train)
 
     def test_model(self, threshold=0.5):
+        self.X_Test_happy = self.X_Test_happy[self.relevant_channels, :, :].reshape(-1, self.X_Test_happy.shape[2])
         happy_predicted_classes = self.clf.predict(np.array(self.X_Test_happy))
-        happy_predicted_classes = self.reshape_test(happy_predicted_classes)
+        # happy_predicted_classes = self.reshape_test(happy_predicted_classes)
         happy_trials = []
         for i in range(int(len(happy_predicted_classes) / self.num_channels)):
             trail_proba = np.mean(happy_predicted_classes[i * self.num_channels:(i + 1) * self.num_channels])
@@ -189,8 +183,9 @@ class P300_model:
                 happy_trials.append(0)
         happy_chance = sum(happy_trials) / len(happy_trials)
 
+        self.X_Test_sad = self.X_Test_sad[self.relevant_channels, :, :].reshape(-1, self.X_Test_sad.shape[2])
         sad_predicted_classes = self.clf.predict(np.array(self.X_Test_sad))
-        sad_predicted_classes = self.reshape_test(sad_predicted_classes, happy=False)
+        # sad_predicted_classes = self.reshape_test(sad_predicted_classes, happy=False)
         sad_trials = []
         for i in range(int(len(sad_predicted_classes) / self.num_channels)):
             trail_proba = np.mean(sad_predicted_classes[i * self.num_channels:(i + 1) * self.num_channels])
@@ -211,24 +206,24 @@ class P300_model:
         # else:
         #     return 2
 
-    def reshape_test(self, lst, happy=True):
-        if happy:
-            idx = 0
-            new_pred = []
-            for i in range(len(self.shape_of_happy)):
-                if self.shape_of_happy[i] == 1:
-                    new_pred.append(lst[idx])
-                    idx += 1
-                else:
-                    new_pred.append(0.5)
-            return new_pred
-        else:
-            idx = 0
-            new_pred = []
-            for i in range(len(self.shape_of_sad)):
-                if self.shape_of_sad[i] == 1:
-                    new_pred.append(lst[idx])
-                    idx += 1
-                else:
-                    new_pred.append(0.5)
-            return new_pred
+    # def reshape_test(self, lst, happy=True):
+    #     if happy:
+    #         idx = 0
+    #         new_pred = []
+    #         for i in range(len(self.shape_of_happy)):
+    #             if self.shape_of_happy[i] == 1:
+    #                 new_pred.append(lst[idx])
+    #                 idx += 1
+    #             else:
+    #                 new_pred.append(0.5)
+    #         return new_pred
+    #     else:
+    #         idx = 0
+    #         new_pred = []
+    #         for i in range(len(self.shape_of_sad)):
+    #             if self.shape_of_sad[i] == 1:
+    #                 new_pred.append(lst[idx])
+    #                 idx += 1
+    #             else:
+    #                 new_pred.append(0.5)
+    #         return new_pred
