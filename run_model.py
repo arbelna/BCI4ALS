@@ -9,7 +9,8 @@ train_new_helmet_indexes = [0, 1, 2, 3, 5, 7, 8, 11]
 hyperparameters = {'n_estimators': 2000,
                    'criterion': 'log_loss',
                    'max_depth': 20,
-                   'max_features': None
+                   'max_features': None,
+                   'n_jobs': -1
                    }
 relevant_channels = [1, 2, 4]
 
