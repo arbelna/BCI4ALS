@@ -72,7 +72,7 @@ save_pickle = False
 remove_new_bad_records = True
 trial_rejection = False
 save_res = False # save results of each bad trial individually
-indexes_to_remove = [2,3,7,14] #indexes of bad records [1,3,8,15]
+indexes_to_remove = [2,3,7,14,20,21,26,27] #indexes of bad records [3,4,8,15,21,22,27,28]
 
 #%% Load your data
 #define path for the plots
@@ -84,8 +84,8 @@ base_filename = 'records_'
 #%% load the data %%#
 #load the records data from the new helmet : all records are 1 block and 200 trials
 path_new = 'C:\\Users\\Cheif\\Desktop\\bci4als\\records\\Michael_new_helmet'
-data_list_new = load_npy_series(path_new, base_filename, start=1, end=16, data_list=None,from_folder = True,folder_name = folder_name) 
-event_table_new = load_csv_series(path_new, base_filename, start=1, end=16, df_list=None,from_folder = True,folder_name = folder_name)
+data_list_new = load_npy_series(path_new, base_filename, start=1, end=28, data_list=None,from_folder = True,folder_name = folder_name) 
+event_table_new = load_csv_series(path_new, base_filename, start=1, end=28, df_list=None,from_folder = True,folder_name = folder_name)
 eeg_data_list_new = []
 epoched_data_list_new = []
 
@@ -131,12 +131,12 @@ with warnings.catch_warnings():
         if trial_rejection and save_res == False:
             pd.concat(bad_trials_new,ignore_index=True).to_csv(f"bad_trials_new.csv")
             pd.concat(sum_channels_bad_new,ignore_index=True).to_csv(f"sum_channels_bad_new.csv")
-
-
+    print("Done with new helmet")
     for block ,data in tqdm(enumerate(data_list_old)):    
         #create list of our preproccsing object using mne objects of mne, filtered already by defult of the class:
         #Sfreq = 125, notch filter = 50 , band pass filter = min :0.5, max :40
         eeg_data_list_old.append(mne_preprocessing(data,event_table_new[block],new = False))
+        eeg_data_list_old[block].epoch_it()
         if create_plots:
                 ##create plots and save them - no show! 
             ## define the directory 

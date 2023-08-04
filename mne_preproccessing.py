@@ -41,7 +41,8 @@ class mne_preprocessing():
         self.set_annotations_from_event_table()
         filtered_data = self.raw_data.copy().notch_filter(freqs = notch, verbose=False)
         self.filterd_data = filtered_data.filter(l_freq = lowcut, h_freq = highcut, verbose=False)
-
+        eeg_ica = mne.preprocessing.ICA(n_components=len(self.filterd_data.ch_names)-1, random_state=97, max_iter=800)
+        self.eeg_ica = eeg_ica.fit(self.filterd_data)
     def create_event_table(self,markers, sfreq, target_table):
         """
         this functions use the markers and the target table to create the event table
@@ -185,6 +186,8 @@ class mne_preprocessing():
         8)  topographical map 
         9) power spectrum density 
         10) the power spectrum density for topomap
+        11) ICA - general
+        12) ICA - each component
         """
         if not os.path.exists(dir):
             # If not, create the directory
@@ -238,7 +241,10 @@ class mne_preprocessing():
         fig = epochs.plot_psd_topomap(show=False)
         fig.savefig(f"{dir}\\epochs_psd_topomap.png")
         plt.close(fig)
-        
+        #11)
+        fig = self.eeg_ica.plot_components(show = False)
+        fig[0].savefig(f"{dir}\\eeg_ica.png")
+        plt.close(fig[0])
         for pick in range(0,len(epochs.ch_names)-1):
             #6)
             fig  = epochs['target'].plot_image(pick, show=False)[0]
@@ -257,7 +263,12 @@ class mne_preprocessing():
             fig = mne.viz.plot_compare_evokeds({"IdleAVG": IdleAVG, "targetAVG": targetAVG}, picks=[pick],show=False)[0]
             fig.savefig(f"{dir}\\exp_{exp_num}_avg_compare_elctorde_{epochs.ch_names[pick]}.png")
             plt.close(fig)
-    
+            
+            #12)
+            fig =  self.eeg_ica.plot_properties(self.filterd_data, picks=pick,show = False)
+            fig[0].savefig(f"{dir}\\exp_{exp_num}_ica_eeg_component_{pick}.png")
+            plt.close(fig[04])
+            
     def trial_rejections(self,rejection_critrerion_amp,epochs = None,
                          block = None , save_res = False):
         bad_trials_df = pd.DataFrame(columns=['rec_number','Epoch', 'Channel','channel_index', 'Max_Amplitude'])        
