@@ -5,13 +5,12 @@ import mne
 import numpy as np
 from eeg import Eeg as eeg
 import pandas as pd
-from mne_preproccessing import mne_preprocessing
 from mne import concatenate_epochs
 from tqdm import tqdm
 import pickle
 import matplotlib.pyplot as plt
 import warnings
-
+from mne_preproccessing import  mne_preprocessing
 
 # %% function that helps us load the data into lists of that data.
 def load_npy_series(path, base_filename, start=1, end=10, data_list=None, from_folder=False, folder_name=None):

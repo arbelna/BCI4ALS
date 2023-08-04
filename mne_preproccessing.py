@@ -267,7 +267,7 @@ class mne_preprocessing():
             #12)
             fig =  self.eeg_ica.plot_properties(self.filterd_data, picks=pick,show = False)
             fig[0].savefig(f"{dir}\\exp_{exp_num}_ica_eeg_component_{pick}.png")
-            plt.close(fig[04])
+            plt.close(fig[0])
             
     def trial_rejections(self,rejection_critrerion_amp,epochs = None,
                          block = None , save_res = False):
