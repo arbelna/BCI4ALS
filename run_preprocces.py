@@ -1,7 +1,7 @@
-#%% imports
-import mne 
+# %% imports
+import mne
 import os
-import mne 
+import mne
 import numpy as np
 from eeg import Eeg as eeg
 import pandas as pd
@@ -10,9 +10,11 @@ from mne import concatenate_epochs
 from tqdm import tqdm
 import pickle
 import matplotlib.pyplot as plt
-import warnings 
-#%% function that helps us load the data into lists of that data.
-def load_npy_series(path, base_filename, start=1, end=10, data_list=None,from_folder = False,folder_name = None):
+import warnings
+
+
+# %% function that helps us load the data into lists of that data.
+def load_npy_series(path, base_filename, start=1, end=10, data_list=None, from_folder=False, folder_name=None):
     """
     Load a series of .npy files with similar names and different trailing numbers.
 
@@ -29,7 +31,7 @@ def load_npy_series(path, base_filename, start=1, end=10, data_list=None,from_fo
         data_list = []
     for i in range(start, end + 1):
         if from_folder:
-            file_path = os.path.join(path,f"{folder_name}{i}", f"{base_filename}{i}.npy")
+            file_path = os.path.join(path, f"{folder_name}{i}", f"{base_filename}{i}.npy")
         else:
             file_path = os.path.join(path, f"{base_filename}{i}.npy")
         if os.path.exists(file_path):
@@ -39,7 +41,8 @@ def load_npy_series(path, base_filename, start=1, end=10, data_list=None,from_fo
             print(f"File {file_path} not found.")
     return data_list
 
-def load_csv_series(path, base_filename, start=1, end=10, df_list=None,from_folder = False,folder_name = None):
+
+def load_csv_series(path, base_filename, start=1, end=10, df_list=None, from_folder=False, folder_name=None):
     """
     Load a series of .csv files with similar names and different trailing numbers.
 
@@ -56,7 +59,7 @@ def load_csv_series(path, base_filename, start=1, end=10, df_list=None,from_fold
         df_list = []
     for i in range(start, end + 1):
         if from_folder:
-                file_path = os.path.join(path,f"{folder_name}{i}", f"{base_filename}{i}.csv")
+            file_path = os.path.join(path, f"{folder_name}{i}", f"{base_filename}{i}.csv")
         else:
             file_path = os.path.join(path, f"{base_filename}{i}.csv")
         if os.path.exists(file_path):
@@ -65,34 +68,40 @@ def load_csv_series(path, base_filename, start=1, end=10, df_list=None,from_fold
         else:
             print(f"File {file_path} not found.")
     return df_list
-#%% define rather you want to create plot, or save a pickle of  
+
+
+# %% define rather you want to create plot, or save a pickle of
 # all the epochs list ,if to remove bad records from  the new helmet records.
 create_plots = True
 save_pickle = False
 remove_new_bad_records = True
 trial_rejection = False
-save_res = False # save results of each bad trial individually
-indexes_to_remove = [2,3,7,14] #indexes of bad records [1,3,8,15]
+save_res = False  # save results of each bad trial individually
+indexes_to_remove = [2, 3, 7, 14]  # indexes of bad records [1,3,8,15]
 
-#%% Load your data
-#define path for the plots
+# %% Load your data
+# define path for the plots
 plot_path_new = "C:\\Users\\Cheif\\Desktop\\bci4als\\BCI4ALS\\plots\\Michael_new_helmet"
 plot_path_old = "C:\\Users\\Cheif\\Desktop\\bci4als\\BCI4ALS\\plots\\Michael_old_helmet"
-#define basic names for the folders and files 
-folder_name  = 'exp_num_'
+# define basic names for the folders and files
+folder_name = 'exp_num_'
 base_filename = 'records_'
-#%% load the data %%#
-#load the records data from the new helmet : all records are 1 block and 200 trials
+# %% load the data %%#
+# load the records data from the new helmet : all records are 1 block and 200 trials
 path_new = 'C:\\Users\\Cheif\\Desktop\\bci4als\\records\\Michael_new_helmet'
-data_list_new = load_npy_series(path_new, base_filename, start=1, end=16, data_list=None,from_folder = True,folder_name = folder_name) 
-event_table_new = load_csv_series(path_new, base_filename, start=1, end=16, df_list=None,from_folder = True,folder_name = folder_name)
+data_list_new = load_npy_series(path_new, base_filename, start=1, end=16, data_list=None, from_folder=True,
+                                folder_name=folder_name)
+event_table_new = load_csv_series(path_new, base_filename, start=1, end=16, df_list=None, from_folder=True,
+                                  folder_name=folder_name)
 eeg_data_list_new = []
 epoched_data_list_new = []
 
-#load the records data from the new helmet : all records are 1 block and 200 trials
+# load the records data from the new helmet : all records are 1 block and 200 trials
 path_old = 'C:\\Users\\Cheif\\Desktop\\bci4als\\records\\Michael_old_helmet'
-data_list_old = load_npy_series(path_old, base_filename, start=17, end=25, data_list=None,from_folder = True,folder_name = folder_name)
-event_table_old = load_csv_series(path_old, base_filename, start=17, end=25, df_list=None,from_folder = True,folder_name = folder_name)
+data_list_old = load_npy_series(path_old, base_filename, start=17, end=25, data_list=None, from_folder=True,
+                                folder_name=folder_name)
+event_table_old = load_csv_series(path_old, base_filename, start=17, end=25, df_list=None, from_folder=True,
+                                  folder_name=folder_name)
 eeg_data_list_old = []
 epoched_data_list_old = []
 bad_trials_new = []
@@ -100,86 +109,86 @@ sum_channels_bad_new = []
 bad_trials_old = []
 sum_channels_bad_old = []
 
-#%%##### pre proceessing the data - creating plots, and epochs %%%%
-#set the reject trials critertia 
-reject =  250
-#remove all warnings from this runs - to make it more readable
+# %%##### pre proceessing the data - creating plots, and epochs %%%%
+# set the reject trials critertia
+reject = 250
+# remove all warnings from this runs - to make it more readable
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
-#%%loop over all the files in the new helmet 
-    for block,data in tqdm(enumerate(data_list_new)):    
-        #create list of our preproccsing object using mne objects of mne, filtered already by defult of the class:
+    # %%loop over all the files in the new helmet
+    for block, data in tqdm(enumerate(data_list_new)):
+        # create list of our preproccsing object using mne objects of mne, filtered already by defult of the class:
         #   Sfreq = 125, notch filter = 50 , band pass filter = min :0.5, max :40
-        eeg_data_list_new.append(mne_preprocessing(data,event_table_new[block],new = True))
+        eeg_data_list_new.append(mne_preprocessing(data, event_table_new[block], new=True))
         eeg_data_list_new[block].epoch_it()
         if create_plots:
-            #create plots and save them - no show! 
+            # create plots and save them - no show!
             # define the directory 
-            directory_name = f"{plot_path_new}\\exp_num_{block+1}"
+            directory_name = f"{plot_path_new}\\exp_num_{block + 1}"
             # created the plots for each expiriment already so not relevant now.
-            eeg_data_list_new[block].all_plots(dir = directory_name , exp_num = block+1)
-        #replace bad trial in a componnet to NaN and document them
+            eeg_data_list_new[block].all_plots(dir=directory_name, exp_num=block + 1)
+        # replace bad trial in a componnet to NaN and document them
         if trial_rejection:
-            _ ,bad_trials_df ,ch_trial_rejected_df = eeg_data_list_new[block].trial_rejections(rejection_critrerion_amp = reject,
-                                block = block , save_res = save_res)
+            _, bad_trials_df, ch_trial_rejected_df = eeg_data_list_new[block].trial_rejections(
+                rejection_critrerion_amp=reject,
+                block=block, save_res=save_res)
             if save_res == False:
                 bad_trials_new.append(bad_trials_df)
-                sum_channels_bad_new.append(ch_trial_rejected_df)    
-        
-            #create list of epoched data - segmented and divted into trials : Idle, Target, Non Target
+                sum_channels_bad_new.append(ch_trial_rejected_df)
+
+                # create list of epoched data - segmented and divted into trials : Idle, Target, Non Target
         epoched_data_list_new.append(eeg_data_list_new[block].epochs)
         if trial_rejection and save_res == False:
-            pd.concat(bad_trials_new,ignore_index=True).to_csv(f"bad_trials_new.csv")
-            pd.concat(sum_channels_bad_new,ignore_index=True).to_csv(f"sum_channels_bad_new.csv")
+            pd.concat(bad_trials_new, ignore_index=True).to_csv(f"bad_trials_new.csv")
+            pd.concat(sum_channels_bad_new, ignore_index=True).to_csv(f"sum_channels_bad_new.csv")
 
-
-    for block ,data in tqdm(enumerate(data_list_old)):    
-        #create list of our preproccsing object using mne objects of mne, filtered already by defult of the class:
-        #Sfreq = 125, notch filter = 50 , band pass filter = min :0.5, max :40
-        eeg_data_list_old.append(mne_preprocessing(data,event_table_new[block],new = False))
+    for block, data in tqdm(enumerate(data_list_old)):
+        # create list of our preproccsing object using mne objects of mne, filtered already by defult of the class:
+        # Sfreq = 125, notch filter = 50 , band pass filter = min :0.5, max :40
+        eeg_data_list_old.append(mne_preprocessing(data, event_table_new[block], new=False))
         if create_plots:
-                ##create plots and save them - no show! 
+            ##create plots and save them - no show!
             ## define the directory 
-            directory_name = f"{plot_path_old}\\exp_num_{block+1}"
+            directory_name = f"{plot_path_old}\\exp_num_{block + 1}"
             # create the plots and save them using a function the the class
-            eeg_data_list_old[block].all_plots(dir = directory_name , exp_num = block+1)
+            eeg_data_list_old[block].all_plots(dir=directory_name, exp_num=block + 1)
         ##replace bad trial in a componnet to NaN and document them
         if trial_rejection:
-            _,bad_trials_df, ch_trial_rejected_df  = eeg_data_list_old[block].trial_rejections(rejection_critrerion_amp = reject,
-                                                                                               block = block , save_res = save_res)
+            _, bad_trials_df, ch_trial_rejected_df = eeg_data_list_old[block].trial_rejections(
+                rejection_critrerion_amp=reject,
+                block=block, save_res=save_res)
         if save_res == False:
             bad_trials_old.append(bad_trials_df)
-            sum_channels_bad_old.append(ch_trial_rejected_df)    
-        #create list of epoched data - segmented and divted into trials : Idle, Target, Non Target
+            sum_channels_bad_old.append(ch_trial_rejected_df)
+            # create list of epoched data - segmented and divted into trials : Idle, Target, Non Target
         epoched_data_list_old.append(eeg_data_list_new[block].epochs)
         if trial_rejection and save_res == False:
-            pd.concat(bad_trials_old,ignore_index=True).to_csv(f"bad_trials_old.csv")
-            pd.concat(sum_channels_bad_old,ignore_index=True).to_csv(f"sum_channels_bad_old.csv")
-    #remove bad records manually from the new helmet
+            pd.concat(bad_trials_old, ignore_index=True).to_csv(f"bad_trials_old.csv")
+            pd.concat(sum_channels_bad_old, ignore_index=True).to_csv(f"sum_channels_bad_old.csv")
+    # remove bad records manually from the new helmet
     if remove_new_bad_records:
         # Sort indexes in descending order to avoid shifting
         epoched_data_list_new = [ele for i, ele in enumerate(epoched_data_list_new)
-                                if i not in indexes_to_remove]
+                                 if i not in indexes_to_remove]
 
-    #%% create a concatenedted object of all the epoched data for both new and old helmet    
-    all_epoched_new= concatenate_epochs(epoched_data_list_new)
+    # %% create a concatenedted object of all the epoched data for both new and old helmet
+    all_epoched_new = concatenate_epochs(epoched_data_list_new)
     all_epoched_old = concatenate_epochs(epoched_data_list_old)
 
-
-    #%%create plots over all the epochs together for both helmets
-    #new helmet:
-    #define directory name
+    # %%create plots over all the epochs together for both helmets
+    # new helmet:
+    # define directory name
     if create_plots:
         directory_name_new = f"{plot_path_new}\\exp_num_"
-        #create the plots and save them using a function the the class
-        eeg_data_list_new[0].all_plots(dir = directory_name_new + "All" ,exp_num = 'All',epochs= all_epoched_new)
-        #old helmet 
-        #define directory name
+        # create the plots and save them using a function the the class
+        eeg_data_list_new[0].all_plots(dir=directory_name_new + "All", exp_num='All', epochs=all_epoched_new)
+        # old helmet
+        # define directory name
         directory_name_old = f"{plot_path_old}\\exp_num_"
-        #create the plots and save them using a function the the class
-        eeg_data_list_new[0].all_plots(dir = directory_name_old + "All" ,exp_num = 'All',epochs= all_epoched_old)
+        # create the plots and save them using a function the the class
+        eeg_data_list_new[0].all_plots(dir=directory_name_old + "All", exp_num='All', epochs=all_epoched_old)
 
-    #%% save the lists for later use in the classification part
+    # %% save the lists for later use in the classification part
     if save_pickle:
         with open('old_helmets_epochs.pkl', 'wb') as f:
             pickle.dump(epoched_data_list_old, f)
@@ -187,8 +196,6 @@ with warnings.catch_warnings():
         with open('new_helmets_epochs.pkl', 'wb') as f:
             pickle.dump(epoched_data_list_new, f)
     print("Done")
-
-
 
     """
     some tests        
