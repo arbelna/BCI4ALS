@@ -19,7 +19,7 @@ def remove_irrelevant_blocks(records, indexes):
 
 
 class P300_model:
-    def __init__(self, data_path=None):
+    def __init__(self):
         self.shape_of_sad = None
         self.shape_of_happy = None
         self.X_Train = None
