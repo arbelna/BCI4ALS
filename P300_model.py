@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split, GridSearchCV
 from itertools import combinations
-from sklearn.ensemble import RandomForestClassifier
 from mne import concatenate_epochs
 from tqdm import tqdm
 import warnings
@@ -20,7 +19,7 @@ def remove_irrelevant_blocks(records, indexes):
 
 
 class P300_model:
-    def __init__(self, data_path=None):
+    def __init__(self):
         self.shape_of_sad = None
         self.shape_of_happy = None
         self.X_Train = None
@@ -39,61 +38,40 @@ class P300_model:
         :param train: boolean var to check if to preprocess the date as input for train or test
         :param data: List of MNE epochs objects
         """
+        relevant_data = get_relevant_blocks(data, blocks)
+        relevant_data = concatenate_epochs(relevant_data)
+        target = relevant_data['target']._get_data()
+        non_target = relevant_data['non-target']._get_data()
+        if new:
+            target = target[:, :9, :]
+            non_target = non_target[:, :9, :]
+        else:
+            target = target[:, :13, :]
+            non_target = non_target[:, :13, :]
+        target = np.reshape(target,
+                            (target.shape[1], target.shape[0],
+                             target.shape[2]))
+        non_target = np.reshape(non_target,
+                                (non_target.shape[1], non_target.shape[0],
+                                 non_target.shape[2]))
         if train:
-            train = get_relevant_blocks(data, blocks)
-            train = concatenate_epochs(train)
-            target_train = train['target']._get_data()
-            non_target_train = train['non-target']._get_data()
-            if new:
-                target_train = target_train[:, :9, :]
-                non_target_train = non_target_train[:, :9, :]
-            else:
-                target_train = target_train[:, :13, :]
-                non_target_train = non_target_train[:, :13, :]
-            target_train = np.reshape(target_train,
-                                      (target_train.shape[1], target_train.shape[0],
-                                       target_train.shape[2]))
-            non_target_train = np.reshape(non_target_train,
-                                          (non_target_train.shape[1], non_target_train.shape[0],
-                                           non_target_train.shape[2]))
-            self.X_Train = np.concatenate((target_train, non_target_train), axis=1)
-            self.y_Train = np.hstack((np.ones(target_train.shape[1]), np.zeros(non_target_train.shape[1])))
+            self.X_Train = np.concatenate((target, non_target), axis=1)
+            self.y_Train = np.hstack((np.ones(target.shape[1]), np.zeros(non_target.shape[1])))
 
         else:
-            test = get_relevant_blocks(data, blocks)
-            test = concatenate_epochs(test)
-            target_test = test['target']._get_data()
-            non_target_test = test['non-target']._get_data()
-            if new:
-                target_test = target_test[:, :9, :]
-                non_target_test = non_target_test[:, :9, :]
-            else:
-                target_test = target_test[:, :13, :]
-                non_target_test = non_target_test[:, :13, :]
-            target_test = np.reshape(target_test,
-                                     (target_test.shape[1], target_test.shape[0],
-                                      target_test.shape[2]))
-            non_target_test = np.reshape(non_target_test,
-                                         (non_target_test.shape[1], non_target_test.shape[0],
-                                          non_target_test.shape[2]))
-            self.X_Test_happy = target_test
-            self.X_Test_sad = non_target_test
+            self.X_Test_happy = target
+            self.X_Test_sad = non_target
 
-    def train_modelCV(self, relevant_channels=None, min_channels=1):
+    def train_modelCV(self, clf, param_grid, relevant_channels=None, min_channels=1):
         """
+        :param param_grid: hyperparameters for thr grid search
+        :param clf: model to train
         :param min_channels: minimal number of channels to use for grid search (odd number)
         :param relevant_channels: relevant channels
         Training the model anf finding the optimal hyperparameters,
         the results of each combination of channels are saved in a DataFrame and in a csv file
         """
         warnings.filterwarnings('ignore')
-
-        # Define your hyperparameters grid
-        param_grid = {'n_estimators': [1000, 1500, 2000],
-                      'criterion': ['gini', 'entropy', 'log_loss'],
-                      'max_depth': [15, 20],
-                      'max_features': ['sqrt', 'log2', None]
-                      }
 
         # Create a DataFrame to save the results
         results_df = pd.DataFrame(columns=['Channels', 'Hyperparameters', 'Train Accuracy', 'Validation Accuracy'])
@@ -123,11 +101,8 @@ class P300_model:
                 X_train, X_test, y_train, y_test = train_test_split(X_Train, y_Train, test_size=0.2,
                                                                     random_state=42)
 
-                # Create the Random Forest model
-                rf = RandomForestClassifier()
-
                 # Run the grid search with parallelization
-                grid_search = GridSearchCV(estimator=rf, param_grid=param_grid, cv=5, n_jobs=-1)
+                grid_search = GridSearchCV(estimator=clf, param_grid=param_grid, cv=5, n_jobs=-1)
                 grid_search.fit(X_train, y_train)
 
                 # Get the best hyperparameters
@@ -153,9 +128,18 @@ class P300_model:
                 # Save the DataFrame to a CSV file after each combination
                 results_df.to_csv('grid_search_results.csv', index=False)
 
-    def train_final_model(self, hyperparameters, relevant_channels=None):
-        # Create the Random Forest model
-        self.clf = RandomForestClassifier(**hyperparameters)
+    def train_final_model(self, clf, hyperparameters, relevant_channels=None):
+        """
+           Trains the final model using the given classifier, hyperparameters, and relevant channels.
+
+           :param clf: Classifier object (e.g., RandomForestClassifier).
+           :param hyperparameters: Dictionary containing hyperparameters to be set for the classifier.
+           :param relevant_channels: List of relevant channels to be considered in training, default is None.
+                                     If provided, the data will be reshaped accordingly.
+
+           :return: None. The method updates the classifier (self.clf) in place with the trained model.
+           """
+        self.clf = clf.set_params(**hyperparameters)
         self.relevant_channels = relevant_channels
         self.num_channels = len(relevant_channels)
 
@@ -170,41 +154,46 @@ class P300_model:
         print('Training the model')
         self.clf.fit(self.X_Train, self.y_Train)
 
-    def test_model(self, threshold=0.5):
+    def test_model(self):
+        """
+        Tests the model using the test data for two categories: "happy" and "sad".
+
+        The method first reshapes the test data according to the relevant channels,
+        then predicts the classes for both categories and computes the average across channels.
+        It then compares the chances for "happy" and "sad" categories and prints and returns the result.
+
+        :return: 1 if "happy" chance is greater, 0 if "sad" chance is greater, or None if they are equal.
+        """
+
+        # Reshaping and predicting for the answer "Yes"
         self.X_Test_happy = self.X_Test_happy[self.relevant_channels, :, :].reshape(-1, self.X_Test_happy.shape[2])
         happy_predicted_classes = self.clf.predict(np.array(self.X_Test_happy))
-        # happy_predicted_classes = self.reshape_test(happy_predicted_classes)
-        happy_trials = []
-        for i in range(int(len(happy_predicted_classes) / self.num_channels)):
-            trail_proba = np.mean(happy_predicted_classes[i * self.num_channels:(i + 1) * self.num_channels])
-            if trail_proba > threshold:
-                happy_trials.append(1)
-            else:
-                happy_trials.append(0)
-        happy_chance = sum(happy_trials) / len(happy_trials)
+        num_columns = len(happy_predicted_classes) // len(self.relevant_channels)
+        happy_matrix = happy_predicted_classes.reshape(num_columns, (len(self.relevant_channels))).T
+        happy_trials = np.round(np.mean(happy_matrix, axis=0))
+        happy_matrix = np.vstack((happy_matrix, happy_trials))
+        happy_chance = np.mean(happy_matrix[-1, :])
 
+        # Reshaping and predicting for the answer "No"
         self.X_Test_sad = self.X_Test_sad[self.relevant_channels, :, :].reshape(-1, self.X_Test_sad.shape[2])
         sad_predicted_classes = self.clf.predict(np.array(self.X_Test_sad))
-        # sad_predicted_classes = self.reshape_test(sad_predicted_classes, happy=False)
-        sad_trials = []
-        for i in range(int(len(sad_predicted_classes) / self.num_channels)):
-            trail_proba = np.mean(sad_predicted_classes[i * self.num_channels:(i + 1) * self.num_channels])
-            if trail_proba > threshold:
-                sad_trials.append(1)
-            else:
-                sad_trials.append(0)
-        sad_chance = sum(sad_trials) / len(sad_trials)
+        num_columns = len(sad_predicted_classes) // len(self.relevant_channels)
+        sad_matrix = sad_predicted_classes.reshape(num_columns, (len(self.relevant_channels))).T
+        sad_trials = np.round(np.mean(sad_matrix, axis=0))
+        sad_matrix = np.vstack((sad_matrix, sad_trials))
+        sad_chance = np.mean(sad_matrix[-1, :])
 
-        return happy_predicted_classes, happy_trials, happy_chance, sad_predicted_classes, sad_trials, sad_chance
+        # return happy_predicted_classes, happy_trials, happy_chance, sad_predicted_classes, sad_trials, sad_chance
 
-        # if happy_chance > sad_chance:
-        #     print('Yes')
-        #     return 1
-        # elif happy_chance < sad_chance:
-        #     print('No')
-        #     return 0
-        # else:
-        #     return 2
+        # Comparing chances and returning result
+        if happy_chance > sad_chance:
+            print('Yes')
+            return 1
+        elif happy_chance < sad_chance:
+            print('No')
+            return 0
+        else:
+            return None
 
     # def reshape_test(self, lst, happy=True):
     #     if happy:
