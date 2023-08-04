@@ -30,7 +30,8 @@ class mne_preprocessing():
     self.annotations - the annotations of the data created from the event table (mne annotations)   
     """
     def __init__(self,data,event_table,new,sfreq = 125,notch =50 ,highcut = 40 ,lowcut = 0.5):
-        data,ch_names,ch_types,markers = self.prepare_info(data,new)
+        self.new = new 
+        data,ch_names,ch_types,markers = self.prepare_info(data)
         self.info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
         self.raw_data = mne.io.RawArray(data, self.info)
         montage = mne.channels.make_standard_montage('standard_1020')
@@ -57,7 +58,7 @@ class mne_preprocessing():
         times = []
         targets = []
         start_stop = []
-
+        indexes = []
         # Iterate through the markers and decode the non-zero ones
         for index, marker_value in enumerate(markers):
             if marker_value != 0:
@@ -71,14 +72,15 @@ class mne_preprocessing():
                 times.append(time)
                 targets.append(target)
                 start_stop.append(status)
-
+                indexes.append(index)
         # Create a DataFrame with the columns
         event_table = pd.DataFrame({
             'event_number': event_numbers,
             'Label': labels,
             'Time': times,
             'Target': targets,
-            'start_stop': start_stop
+            'start_stop': start_stop,
+            'index' :indexes
         })
 
         return event_table        
@@ -113,7 +115,7 @@ class mne_preprocessing():
         # set the annotations for the Raw object
         self.raw_data.set_annotations(annotations)
             
-    def prepare_info(self,data,new):
+    def prepare_info(self,data):
         """
         this function prepares the info for creating the raw.mne object
         params:
@@ -125,7 +127,7 @@ class mne_preprocessing():
             ch_types - the types of the channels (list)
             markers - a coded markers of the data - define where a stimuli showed and what stimuli  (numpy array)
         """
-        if new:
+        if self.new:
             markers = data[31]
             relevant_data = data[[1,2,3,4,5,7,8,9,11,31]]
             ch_names = ["Pz","Fz","Cz","CP1","FC1","AF3","CP2","FC2","AF4","Markers"]
@@ -137,7 +139,7 @@ class mne_preprocessing():
             ch_types = ["eeg","eeg","eeg","eeg", "eeg", "eeg", "eeg", "eeg", "eeg", "eeg", "eeg", "eeg","eeg" ,"stim"]
         return relevant_data , ch_names , ch_types,markers
     
-    def epoch_it(self,tmin = -1 ,tmax = 0.8 ,baseline = (-1, 0),preload = True , reject = None):
+    def epoch_it(self,tmin =  -0.9 ,tmax = 1 ,baseline = (-0.9, 0),preload = True , reject = None):
         """
         this function creates an epochs object from the filtered data and the event table
         as defult returns and object deviding the data to Idle, Target and Non-Target epochs'
@@ -155,6 +157,9 @@ class mne_preprocessing():
         #create the epochs object
         epochs = mne.Epochs(self.filterd_data, events, event_id, tmin = tmin,
                             tmax = tmax ,baseline = baseline, preload = preload,reject = reject)
+        
+        # remove the baseline data from the epochs
+        epochs.crop(tmin = 0, tmax = 1)
         #set the epochs object and return it, so we can use it as a function or as an attribute
         if reject is not None:
             epochs.drop_bad()
@@ -253,4 +258,41 @@ class mne_preprocessing():
             fig = mne.viz.plot_compare_evokeds({"IdleAVG": IdleAVG, "targetAVG": targetAVG}, picks=[pick],show=False)[0]
             fig.savefig(f"{dir}\\exp_{exp_num}_avg_compare_elctorde_{epochs.ch_names[pick]}.png")
             plt.close(fig)
-            
+    
+    def trial_rejections(self,rejection_critrerion_amp,epochs = None,
+                         block = None , save_res = False):
+        bad_trials_df = pd.DataFrame(columns=['rec_number','Epoch', 'Channel','channel_index', 'Max_Amplitude'])        
+        ch_trial_rejected = {}
+        rejcted_trials = 0
+        if epochs == None:
+            epochs = self.epochs.copy()
+        for channel_index,channel_name in enumerate(epochs.ch_names[:-1]):
+            if channel_index != 0:
+                ch_trial_rejected[channel_name]= rejcted_trials 
+                rejcted_trials = 0
+            for i, epoch in enumerate(epochs.get_data()):
+                max_amplitude =  np.abs(epoch[channel_index, :]).max() 
+                # Check if the amplitude in the specific channel exceeds the threshold
+                if  max_amplitude > rejection_critrerion_amp:   
+                # If it does, set the entire epoch for that channel to NaN
+                    rejcted_trials += 1
+                    epochs._data[i, channel_index, :] = np.nan
+                    bad_trials_df = bad_trials_df.append({
+                        'rec_number':block,
+                        'Epoch': i,
+                        'Channel': channel_name,
+                        'channel_index' : channel_index,
+                        'Max_Amplitude': max_amplitude}, ignore_index=True)         
+        
+        ch_trial_rejected_df = pd.DataFrame(ch_trial_rejected,index =[0])
+        if self.new:
+                bad_trials_df.to_csv(f"bad_trials_df_new_{block}.csv")
+                ch_trial_rejected_df.to_csv(f"ch_trial_rejected_new_{block}.csv") 
+
+        else:
+            bad_trials_df.to_csv(f"bad_trials_df_old_{block}.csv")
+            ch_trial_rejected_df.to_csv(f"ch_trial_rejected_old_{block}.csv") 
+    
+        self.epochs = epochs
+        return epochs,bad_trials_df, ch_trial_rejected_df
+    
