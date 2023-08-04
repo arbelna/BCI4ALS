@@ -2,6 +2,7 @@ from sklearn.model_selection import LeaveOneOut
 import pandas as pd
 import pickle
 from P300_model import P300_model
+from sklearn.ensemble import RandomForestClassifier
 
 with open('new_helmets_epochs.pkl', 'rb') as f:
     new_helmets_rec = pickle.load(f)
@@ -10,13 +11,13 @@ with open('new_helmets_epochs.pkl', 'rb') as f:
 loo = LeaveOneOut()
 indexes = [i for i in range(12)]  # Assuming that new_helmets_rec is a list or something with len
 
-hyperparameters = {'n_estimators': 1500,
-                   'criterion': 'log_loss',
+hyperparameters = {'n_estimators': 1000,
+                   'criterion': 'entropy',
                    'max_depth': 20,
                    'max_features': None,
-                   'n_jobs': -1
+                   'n_jobs': 4
                    }
-relevant_channels = [0, 5, 6, 7, 8]
+relevant_channels = [5, 7, 8]
 
 new_helmet_model = P300_model()
 
@@ -33,7 +34,7 @@ for train_indexes, test_indexes in loo.split(indexes):
     print("Test indexes: ", test_new_helmet_indexes)
 
     new_helmet_model.create_x_y(new_helmets_rec, train_new_helmet_indexes, new=True)
-    new_helmet_model.train_final_model(hyperparameters, relevant_channels)
+    new_helmet_model.train_final_model(RandomForestClassifier(), hyperparameters, relevant_channels)
 
     new_helmet_model.create_x_y(new_helmets_rec, test_new_helmet_indexes, train=False, new=True)
     happy_predicted_classes, happy_trials, happy_chance, sad_predicted_classes, sad_trials, sad_chance = new_helmet_model.test_model()
