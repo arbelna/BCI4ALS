@@ -1,4 +1,6 @@
 # Load libraries
+import math
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -62,11 +64,12 @@ class P300_model:
             self.X_Test_happy = target
             self.X_Test_sad = non_target
 
-    def train_modelCV(self, clf, param_grid, relevant_channels=None, min_channels=1):
+    def train_modelCV(self, clf, param_grid, relevant_channels=None, min_channels=3, max_channels=5):
         """
-        :param param_grid: hyperparameters for thr grid search
+        param param_grid: hyperparameters for thr grid search
         :param clf: model to train
         :param min_channels: minimal number of channels to use for grid search (odd number)
+        :param max_channels: maximal number of channels to use for grid search (odd number)
         :param relevant_channels: relevant channels
         Training the model anf finding the optimal hyperparameters,
         the results of each combination of channels are saved in a DataFrame and in a csv file
@@ -77,25 +80,30 @@ class P300_model:
         results_df = pd.DataFrame(columns=['Channels', 'Hyperparameters', 'Train Accuracy', 'Validation Accuracy'])
         X_Train = self.X_Train.copy()
         if relevant_channels is not None:
-            X_Train = X_Train[relevant_channels, :, :]
+            n_channels = len(relevant_channels)
+        else:
+            n_channels = X_Train.shape[0]
 
-        n_channels, n_trials, n_samples = X_Train.shape
-
+        n_samples = X_Train.shape[2]
         # Total number of odd-sized combinations of channels
-        total_combinations = sum(1 for r in range(1, n_channels + 1, 2) for _ in combinations(range(n_channels), r))
+        total_combinations = math.comb(n_channels, 3) + math.comb(n_channels, 5)
 
         # Iterate through odd-sized combinations of channels
-        for r in range(min_channels, n_channels + 1, 2):
+        for r in range(min_channels, max_channels, 2):
             for channels in tqdm(combinations(range(n_channels), r), total=total_combinations,
                                  desc="Processing combinations"):
                 print(f"Running for channels: {channels}")
 
-                if relevant_channels is not None:
-                    # Select the data for the current combination of channels
-                    X_Train = X_Train[channels, :, :].reshape(-1, n_samples)
+                # Select the data for the current combination of channels
+                X_Train = self.X_Train[channels, :, :].reshape(-1, n_samples)
 
                 # Repeat the labels for each channel in the combination
                 y_Train = np.repeat(self.y_Train, len(channels))
+
+                X_Train = np.column_stack((X_Train, y_Train))
+                X_Train = X_Train[~np.isnan(X_Train).any(axis=1)]
+                y_Train = X_Train[:, -1]
+                X_Train = X_Train[:, :-1]
 
                 # Split the selected data into training and testing sets
                 X_train, X_test, y_train, y_test = train_test_split(X_Train, y_Train, test_size=0.2,
@@ -151,6 +159,11 @@ class P300_model:
             self.X_Train = self.X_Train.reshape(-1, self.X_Train.shape[2])
             self.y_Train = np.repeat(self.y_Train, len(self.X_Train.shape[0]))
 
+        self.X_Train = np.column_stack((self.X_Train, self.y_Train))
+        self.X_Train = self.X_Train[~np.isnan(self.X_Train).any(axis=1)]
+        self.y_Train = self.X_Train[:, -1]
+        self.X_Train = self.X_Train[:, :-1]
+
         print('Training the model')
         self.clf.fit(self.X_Train, self.y_Train)
 
@@ -167,7 +180,16 @@ class P300_model:
 
         # Reshaping and predicting for the answer "Yes"
         self.X_Test_happy = self.X_Test_happy[self.relevant_channels, :, :].reshape(-1, self.X_Test_happy.shape[2])
-        happy_predicted_classes = self.clf.predict(np.array(self.X_Test_happy))
+        n_samples = self.X_Test_happy.shape[0]
+        not_nan_rows_happy = ~np.any(np.isnan(self.X_Test_happy), axis=1)
+        self.X_Test_happy = self.X_Test_happy[not_nan_rows_happy]
+        happy_predicted_classes_without_nan = self.clf.predict(self.X_Test_happy)
+
+        # Insert default values at NaN indices
+        default_value = 0.5  # Replace with your desired default value
+        happy_predicted_classes = np.full(n_samples, default_value)
+        happy_predicted_classes[not_nan_rows_happy] = happy_predicted_classes_without_nan
+
         num_columns = len(happy_predicted_classes) // len(self.relevant_channels)
         happy_matrix = happy_predicted_classes.reshape(num_columns, (len(self.relevant_channels))).T
         happy_trials = np.round(np.mean(happy_matrix, axis=0))
@@ -176,43 +198,31 @@ class P300_model:
 
         # Reshaping and predicting for the answer "No"
         self.X_Test_sad = self.X_Test_sad[self.relevant_channels, :, :].reshape(-1, self.X_Test_sad.shape[2])
-        sad_predicted_classes = self.clf.predict(np.array(self.X_Test_sad))
-        num_columns = len(sad_predicted_classes) // len(self.relevant_channels)
-        sad_matrix = sad_predicted_classes.reshape(num_columns, (len(self.relevant_channels))).T
+        n_samples_sad = self.X_Test_sad.shape[0]
+        not_nan_rows_sad = ~np.any(np.isnan(self.X_Test_sad), axis=1)
+        self.X_Test_sad = self.X_Test_sad[not_nan_rows_sad]
+        sad_predicted_classes_without_nan = self.clf.predict(self.X_Test_sad)
+
+        # Insert default values at NaN indices
+        default_value_sad = 0.5  # Replace with your desired default value
+        sad_predicted_classes = np.full(n_samples_sad, default_value_sad)
+        sad_predicted_classes[not_nan_rows_sad] = sad_predicted_classes_without_nan
+
+        num_columns_sad = len(sad_predicted_classes) // len(self.relevant_channels)
+        sad_matrix = sad_predicted_classes.reshape(num_columns_sad, (len(self.relevant_channels))).T
         sad_trials = np.round(np.mean(sad_matrix, axis=0))
         sad_matrix = np.vstack((sad_matrix, sad_trials))
         sad_chance = np.mean(sad_matrix[-1, :])
 
-        # return happy_predicted_classes, happy_trials, happy_chance, sad_predicted_classes, sad_trials, sad_chance
+        return happy_predicted_classes, happy_trials, happy_chance, sad_predicted_classes, sad_trials, sad_chance
 
         # Comparing chances and returning result
-        if happy_chance > sad_chance:
-            print('Yes')
-            return 1
-        elif happy_chance < sad_chance:
-            print('No')
-            return 0
-        else:
-            return None
+        # if happy_chance > sad_chance:
+        #     print('Yes')
+        #     return 1
+        # elif happy_chance < sad_chance:
+        #     print('No')
+        #     return 0
+        # else:
+        #     return None
 
-    # def reshape_test(self, lst, happy=True):
-    #     if happy:
-    #         idx = 0
-    #         new_pred = []
-    #         for i in range(len(self.shape_of_happy)):
-    #             if self.shape_of_happy[i] == 1:
-    #                 new_pred.append(lst[idx])
-    #                 idx += 1
-    #             else:
-    #                 new_pred.append(0.5)
-    #         return new_pred
-    #     else:
-    #         idx = 0
-    #         new_pred = []
-    #         for i in range(len(self.shape_of_sad)):
-    #             if self.shape_of_sad[i] == 1:
-    #                 new_pred.append(lst[idx])
-    #                 idx += 1
-    #             else:
-    #                 new_pred.append(0.5)
-    #         return new_pred
