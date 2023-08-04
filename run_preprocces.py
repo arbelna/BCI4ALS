@@ -67,12 +67,12 @@ def load_csv_series(path, base_filename, start=1, end=10, df_list=None,from_fold
     return df_list
 #%% define rather you want to create plot, or save a pickle of  
 # all the epochs list ,if to remove bad records from  the new helmet records.
-create_plots = False
-save_pickle = True
+create_plots = True
+save_pickle = False
 remove_new_bad_records = True
-trial_rejection = True
+trial_rejection = False
 save_res = False # save results of each bad trial individually
-indexes_to_remove = [0,2,7,14] #indexes of bad records [1,3,8,15]
+indexes_to_remove = [2,3,7,14] #indexes of bad records [1,3,8,15]
 
 #%% Load your data
 #define path for the plots
@@ -117,33 +117,32 @@ with warnings.catch_warnings():
             # define the directory 
             directory_name = f"{plot_path_new}\\exp_num_{block+1}"
             # created the plots for each expiriment already so not relevant now.
-            eeg_data_list_new[block].epochs.all_plots(dir = directory_name , exp_num = block+1
-                                                      ,epochs= epoched_data_list_new[block]) #dont have to use the epochs argument  
+            eeg_data_list_new[block].all_plots(dir = directory_name , exp_num = block+1)
         #replace bad trial in a componnet to NaN and document them
         if trial_rejection:
             _ ,bad_trials_df ,ch_trial_rejected_df = eeg_data_list_new[block].trial_rejections(rejection_critrerion_amp = reject,
-                                block = block , save_res = True)
+                                block = block , save_res = save_res)
             if save_res == False:
                 bad_trials_new.append(bad_trials_df)
                 sum_channels_bad_new.append(ch_trial_rejected_df)    
         
             #create list of epoched data - segmented and divted into trials : Idle, Target, Non Target
         epoched_data_list_new.append(eeg_data_list_new[block].epochs)
-        pd.concat(bad_trials_old,ignore_index=True).to_csv(f"bad_trials_new.csv")
-        pd.concat(sum_channels_bad_old,ignore_index=True).to_csv(f"sum_channels_bad_new.csv")
+        if trial_rejection and save_res == False:
+            pd.concat(bad_trials_new,ignore_index=True).to_csv(f"bad_trials_new.csv")
+            pd.concat(sum_channels_bad_new,ignore_index=True).to_csv(f"sum_channels_bad_new.csv")
 
 
     for block ,data in tqdm(enumerate(data_list_old)):    
         #create list of our preproccsing object using mne objects of mne, filtered already by defult of the class:
         #Sfreq = 125, notch filter = 50 , band pass filter = min :0.5, max :40
         eeg_data_list_old.append(mne_preprocessing(data,event_table_new[block],new = False))
-        epochs = eeg_data_list_old[block].epoch_it()
         if create_plots:
                 ##create plots and save them - no show! 
             ## define the directory 
             directory_name = f"{plot_path_old}\\exp_num_{block+1}"
             # create the plots and save them using a function the the class
-            epochs[block].all_plots(dir = directory_name , exp_num = block+1,epochs= epoched_data_list_old[block]) #dont have to use the epochs argument  
+            eeg_data_list_old[block].all_plots(dir = directory_name , exp_num = block+1)
         ##replace bad trial in a componnet to NaN and document them
         if trial_rejection:
             _,bad_trials_df, ch_trial_rejected_df  = eeg_data_list_old[block].trial_rejections(rejection_critrerion_amp = reject,
@@ -153,8 +152,9 @@ with warnings.catch_warnings():
             sum_channels_bad_old.append(ch_trial_rejected_df)    
         #create list of epoched data - segmented and divted into trials : Idle, Target, Non Target
         epoched_data_list_old.append(eeg_data_list_new[block].epochs)
-        pd.concat(bad_trials_old,ignore_index=True).to_csv(f"bad_trials_old.csv")
-        pd.concat(sum_channels_bad_old,ignore_index=True).to_csv(f"sum_channels_bad_old.csv")
+        if trial_rejection and save_res == False:
+            pd.concat(bad_trials_old,ignore_index=True).to_csv(f"bad_trials_old.csv")
+            pd.concat(sum_channels_bad_old,ignore_index=True).to_csv(f"sum_channels_bad_old.csv")
     #remove bad records manually from the new helmet
     if remove_new_bad_records:
         # Sort indexes in descending order to avoid shifting

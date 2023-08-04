@@ -163,7 +163,9 @@ class mne_preprocessing():
         #set the epochs object and return it, so we can use it as a function or as an attribute
         if reject is not None:
             epochs.drop_bad()
+        epochs.baseline = None
         self.epochs = epochs
+        
         return epochs
 
     def all_plots(self,dir,exp_num,epochs = None):
@@ -237,9 +239,6 @@ class mne_preprocessing():
         fig.savefig(f"{dir}\\epochs_psd_topomap.png")
         plt.close(fig)
         
-        
-        
-        
         for pick in range(0,len(epochs.ch_names)-1):
             #6)
             fig  = epochs['target'].plot_image(pick, show=False)[0]
@@ -267,9 +266,6 @@ class mne_preprocessing():
         if epochs == None:
             epochs = self.epochs.copy()
         for channel_index,channel_name in enumerate(epochs.ch_names[:-1]):
-            if channel_index != 0:
-                ch_trial_rejected[channel_name]= rejcted_trials 
-                rejcted_trials = 0
             for i, epoch in enumerate(epochs.get_data()):
                 max_amplitude =  np.abs(epoch[channel_index, :]).max() 
                 # Check if the amplitude in the specific channel exceeds the threshold
@@ -283,16 +279,18 @@ class mne_preprocessing():
                         'Channel': channel_name,
                         'channel_index' : channel_index,
                         'Max_Amplitude': max_amplitude}, ignore_index=True)         
-        
+            ch_trial_rejected[channel_name] = rejcted_trials
+            rejcted_trials = 0        
         ch_trial_rejected_df = pd.DataFrame(ch_trial_rejected,index =[0])
-        if self.new:
-                bad_trials_df.to_csv(f"bad_trials_df_new_{block}.csv")
-                ch_trial_rejected_df.to_csv(f"ch_trial_rejected_new_{block}.csv") 
+        if save_res:
+            if self.new:
+                    bad_trials_df.to_csv(f"bad_trials_df_new_{block}.csv")
+                    ch_trial_rejected_df.to_csv(f"ch_trial_rejected_new_{block}.csv") 
 
-        else:
-            bad_trials_df.to_csv(f"bad_trials_df_old_{block}.csv")
-            ch_trial_rejected_df.to_csv(f"ch_trial_rejected_old_{block}.csv") 
-    
+            else:
+                bad_trials_df.to_csv(f"bad_trials_df_old_{block}.csv")
+                ch_trial_rejected_df.to_csv(f"ch_trial_rejected_old_{block}.csv") 
+        
         self.epochs = epochs
         return epochs,bad_trials_df, ch_trial_rejected_df
     
