@@ -31,7 +31,7 @@ class Experiment:
         self.eeg = eeg
         self.results = []
         self.enum_image = {0: 'Idle', 1: 'No', 2: 'Yes'}
-        self.image_discription = {1: 'Sad Bugs Bunny', 2: 'Happy Bugs Bunny'}
+        self.image_description = {1: 'Sad Bugs Bunny', 2: 'Happy Bugs Bunny'}
 
         # labels
         self.labels = []
@@ -334,7 +334,7 @@ class Experiment:
             look = self.targets[i]["Number"]
             shout = self.targets[i]["Target"]
             start_block_win = visual.TextStim(mywin,
-                                              f'Block number {i + 1} \n\n Target Image:{self.image_discription[look]} \n\n Target Sound:{shout}',
+                                              f'Block number {i + 1} \n\n Target Image:{self.image_description[look]} \n\n Target Sound:{shout}',
                                               color=(1, 1, 1),
                                               colorSpace='rgb')
             start_block_win.draw()
