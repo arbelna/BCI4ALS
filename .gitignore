@@ -1,2 +1,6 @@
 new_helmets_epochs.pkl
 old_helmets_epochs.pkl
+sum_channels_bad_new.csv
+bad_trials_new.csv
+bad_trials_old.csv
+sum_channels_bad_old.csv
