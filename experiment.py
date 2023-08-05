@@ -330,7 +330,7 @@ class Experiment:
             target = 'No'
             
         start_block_win = visual.TextStim(mywin,
-                                            f'Block number {i + 1} \n\n The prediction is: \n\n ',
+                                            f' The prediction is........ \n\n ',
                                             color=(1, 1, 1),
                                             colorSpace='rgb')
         start_block_win.draw()
@@ -593,7 +593,7 @@ class Experiment:
                             'Block_answer': self.targets[i]['Target'],
                             'True_target_amount': True_counted_target}
             else:
-                new_block = {'exp_num': num_record,
+                    new_block = {'exp_num': num_record,
                         'block_number': i + 1,
                         'num_trials': self.num_trials,
                         'Block_answer': self.targets[i]['Target'],

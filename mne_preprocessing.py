@@ -29,13 +29,15 @@ class mne_preprocessing():
     self.event_table - the event table of the data created from the markers (pandas dataframe)
     self.annotations - the annotations of the data created from the event table (mne annotations)   
     """
-    def __init__(self,data,event_table,new,sfreq = 125,notch =50 ,highcut = 40 ,lowcut = 0.5):
+    def __init__(self,data,event_table,new,sfreq = 125,notch =50 ,highcut = 40 ,lowcut = 0.5,re_refrence = False):
         self.new = new 
         data,ch_names,ch_types,markers = self.prepare_info(data)
         self.info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
         self.raw_data = mne.io.RawArray(data, self.info)
         montage = mne.channels.make_standard_montage('standard_1020')
         self.raw_data.set_montage(montage)
+        if re_refrence:
+            self.raw_data, _ = mne.set_eeg_reference(self.raw_data.copy(), 'average')
         self.markers = markers
         self.event_table = self.create_event_table(markers, sfreq, event_table)
         self.set_annotations_from_event_table()
@@ -203,8 +205,8 @@ class mne_preprocessing():
         plt.close(fig)
         
         #2)
-        IdleAVG = epochs["Idle"].average()
-        fig = IdleAVG.plot(show = False)
+        non_targetAVG = epochs["non-target"].average()
+        fig = non_targetAVG.plot(show = False)
         fig.savefig(f"{dir}\\exp_{exp_num}_Idle_avg.png")
         plt.close(fig) 
         
@@ -215,7 +217,7 @@ class mne_preprocessing():
         plt.close(fig)
         
         #4)
-        diff = mne.combine_evoked((targetAVG,-IdleAVG), weights='equal')
+        diff = mne.combine_evoked((targetAVG,-non_targetAVG), weights='equal')
         fig = diff.plot_joint(times=0.35, show=False)
         fig.savefig(f"{dir}\\exp_{exp_num}_diff_p300.png")
         plt.close(fig)
@@ -229,7 +231,7 @@ class mne_preprocessing():
         fig = targetAVG.plot_topomap(show = False)
         fig.savefig(f"{dir}\\exp_{exp_num}_target_topomap_avg.png")
         plt.close(fig)   
-        fig = IdleAVG.plot_topomap(show = False)
+        fig = non_targetAVG.plot_topomap(show = False)
         fig.savefig(f"{dir}\\exp_{exp_num}_Idle_topomap_avg.png")
         plt.close(fig)   
         
@@ -260,7 +262,7 @@ class mne_preprocessing():
             plt.close(fig)
             
             #7)
-            fig = mne.viz.plot_compare_evokeds({"IdleAVG": IdleAVG, "targetAVG": targetAVG}, picks=[pick],show=False)[0]
+            fig = mne.viz.plot_compare_evokeds({"non-target_AVG": non_targetAVG, "targetAVG": targetAVG}, picks=[pick],show=False)[0]
             fig.savefig(f"{dir}\\exp_{exp_num}_avg_compare_elctorde_{epochs.ch_names[pick]}.png")
             plt.close(fig)
             

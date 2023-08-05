@@ -68,13 +68,12 @@ def load_csv_series(path, base_filename, start=1, end=10, df_list=None, from_fol
             print(f"File {file_path} not found.")
     return df_list
 
-
 # %% define rather you want to create plot, or save a pickle of
 # all the epochs list ,if to remove bad records from  the new helmet records.
-create_plots = True
-save_pickle = False
+create_plots = False
+save_pickle = True
 remove_new_bad_records = True
-trial_rejection = False
+trial_rejection = True
 save_res = False # save results of each bad trial individually
 indexes_to_remove = [2,3,7,14,20,21,26,27] #indexes of bad records [3,4,8,15,21,22,27,28]
 
@@ -116,7 +115,7 @@ with warnings.catch_warnings():
     for block, data in tqdm(enumerate(data_list_new)):
         # create list of our preproccsing object using mne objects of mne, filtered already by defult of the class:
         #   Sfreq = 125, notch filter = 50 , band pass filter = min :0.5, max :40
-        eeg_data_list_new.append(mne_preprocessing(data, event_table_new[block], new=True))
+        eeg_data_list_new.append(mne_preprocessing(data, event_table_new[block], new=True,re_refrence=True))
         eeg_data_list_new[block].epoch_it()
         if create_plots:
             # create plots and save them - no show!
