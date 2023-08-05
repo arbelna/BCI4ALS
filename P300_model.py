@@ -225,4 +225,3 @@ class P300_model:
         #     return 0
         # else:
         #     return None
-
