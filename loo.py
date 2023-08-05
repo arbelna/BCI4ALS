@@ -9,15 +9,12 @@ with open('new_helmets_epochs.pkl', 'rb') as f:
 
 # Splitting indexes into train and test using Leave One Out method
 loo = LeaveOneOut()
-indexes = [i for i in range(12)]  # Assuming that new_helmets_rec is a list or something with len
+indexes = [i for i in range(len(new_helmets_rec))]  # Assuming that new_helmets_rec is a list or something with len
 
-hyperparameters = {'n_estimators': 1000,
-                   'criterion': 'entropy',
-                   'max_depth': 20,
-                   'max_features': None,
-                   'n_jobs': 4
-                   }
-relevant_channels = [5, 7, 8]
+hyperparameters ={'criterion': 'entropy', 'max_depth': 15, 'max_features': 0.2, 'min_samples_leaf': 3, 'n_estimators': 500,'n_jobs': -1}
+                   
+                   
+relevant_channels = [2, 6,7]
 
 new_helmet_model = P300_model()
 
@@ -53,7 +50,7 @@ for train_indexes, test_indexes in loo.split(indexes):
     }, ignore_index=True)
 
     # Save the DataFrame to a CSV file after each combination
-    results_df.to_csv('loo_results.csv', index=False)
+    results_df.to_csv('loo1_results.csv', index=False)
 
 # Save the results as a pickle file
 with open('loo_results.pkl', 'wb') as f:

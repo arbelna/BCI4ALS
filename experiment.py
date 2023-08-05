@@ -7,15 +7,16 @@ import time
 import numpy as np
 import pickle
 import os
-
+from mne_preprocessing import mne_preprocessing
+from P300_model import P300_model
 
 class Experiment:
-    def __init__(self, eeg, michael=False):
+    def __init__(self, eeg, michael=False,new = False):
         """
         This is the constructor method that is called when an object of this class is created.
         It initializes several instance variables
         """
-
+        self.new = new
         self.num_blocks = None
         self.num_trials = None
         self.subject_name = None
@@ -310,8 +311,46 @@ class Experiment:
         # Close the window
         win.close()
         return answer
-
-    def run_experiment(self):
+    
+    def prediction_mode(self,model,reject = 250):
+        pre = mne_preprocessing(data=self.eeg,event_table=self.results,new = self.new)
+        pre.epoch_it()
+        pre.trial_rejections(rejection_critrerion_amp = reject)
+        model.create_x_y([pre.epochs], [0], train=False, new=self.new)
+        pred = model.test_model(prediction = True)
+        self.pred_screen(prediction = pred)
+        
+        
+    def pred_screen(self,prediction):
+        mywin = visual.Window([800, 800], monitor="testMonitor", units="deg")
+        # the choice of the target look  : (i % 2) + 1
+        if prediction:
+            target = 'Yes'
+        else:
+            target = 'No'
+            
+        start_block_win = visual.TextStim(mywin,
+                                            f'Block number {i + 1} \n\n The prediction is: \n\n ',
+                                            color=(1, 1, 1),
+                                            colorSpace='rgb')
+        start_block_win.draw()
+        mywin.flip(clearBuffer=True)
+        core.wait(0.6)
+        mywin.close()
+        mywin = visual.Window([800, 800], monitor="testMonitor", units="deg")
+        start_block_win = visual.ImageStim(win=mywin,
+                                            image=f'Pictures/{target}.png')
+        mySound = sound.Sound(f'Pictures/{target}.mp3')
+        nextFlip = mywin.getFutureFlipTime(clock='ptb')
+        start_block_win.draw()
+        mySound.play(when=nextFlip)
+        # status: str, label: int, index: int
+        mywin.flip(clearBuffer=True)
+        core.wait(0.7)
+        mywin.close()
+    
+    
+    def run_experiment(self,predicton_mode = False,model = None):
         """
         This method runs the experiment by displaying images to the user and collecting their responses.
          It stores the results in the results instance variable.
@@ -321,7 +360,12 @@ class Experiment:
         image: 0 = distractor/furious,1 = sad, 2 = happy, when 1 or 2 are target or non target
         """
 
-        self.targets = self.choose_targets()
+        if predicton_mode == False:
+            self.targets = self.choose_targets()
+        else:
+            self.targets = np.empty((self.num_blocks), dtype=object)
+            self.targets[:] = {"Target": "Yes", "Number": 2}
+
         self.eeg.stream_on()  # Start to record data from the electrodes
         self.eeg.clear_board()  # Clear the board data
         # overwrite (filemode='w') a detailed log of the last run in this dir
@@ -382,16 +426,19 @@ class Experiment:
         self.results = self.results.set_axis(['Block', 'Trial', 'Label', 'Target', 'Time', 'Unix time'], axis=1)
         self.data = self.eeg.get_stream_data()  # Save the eeg data as numpy array
         self.eeg.stream_off()  # Stop recording
+        if predicton_mode:
+            self.prediction_mode(model)
+        
+        else:    
+            counted_targets = np.empty((self.num_blocks), dtype=object)
+            for b in range(self.num_blocks):
+                counted_targets[b] = self.ask_counted_target(b)
+                if counted_targets[b] == self.labels[b].count(self.targets[b]['Number']):
+                    self.success_screen()
+                else:
+                    self.fail_screen(counted_targets[b], self.labels[b].count(self.targets[b]['Number']))
 
-        counted_targets = np.empty((self.num_blocks), dtype=object)
-        for b in range(self.num_blocks):
-            counted_targets[b] = self.ask_counted_target(b)
-            if counted_targets[b] == self.labels[b].count(self.targets[b]['Number']):
-                self.success_screen()
-            else:
-                self.fail_screen(counted_targets[b], self.labels[b].count(self.targets[b]['Number']))
-
-        self.counted_targets = counted_targets
+            self.counted_targets = counted_targets
         self.save_results()
         answer = self.try_again()
         if answer:
@@ -539,12 +586,19 @@ class Experiment:
             else:
                 True_counted_target = int(True_counted_target)
 
-            new_block = {'exp_num': num_record,
-                         'block_number': i + 1,
-                         'num_trials': self.num_trials,
-                         'Block_answer': self.targets[i]['Target'],
-                         'Counted_Target': self.counted_targets[i],
-                         'True_target_amount': True_counted_target}
+            if True_counted_target == None:
+                new_block = {'exp_num': num_record,
+                            'block_number': i + 1,
+                            'num_trials': self.num_trials,
+                            'Block_answer': self.targets[i]['Target'],
+                            'True_target_amount': True_counted_target}
+            else:
+                new_block = {'exp_num': num_record,
+                        'block_number': i + 1,
+                        'num_trials': self.num_trials,
+                        'Block_answer': self.targets[i]['Target'],
+                        'Counted_Target': self.counted_targets[i],
+                        'True_target_amount': True_counted_target}
 
             log = log.append(new_block, ignore_index=True)
 

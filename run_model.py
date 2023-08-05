@@ -9,6 +9,8 @@ with open('new_helmets_epochs.pkl', 'rb') as f:
 test_new_helmet_indexes = [4, 6, 9, 10]
 train_new_helmet_indexes = [0, 1, 2, 3, 5, 7, 8, 11]
 
+train  = False
+test = True
 # Define your hyperparameters grid
 param_grid_randomforest = {
     'n_estimators': [500, 1000, 1500],
@@ -28,19 +30,25 @@ param_grid_xgb = {
 }
 
 
-hyperparameters = {'n_estimators': 2000,
-                   'criterion': 'log_loss',
-                   'max_depth': 20,
-                   'max_features': None,
-                   'n_jobs': -1
-                   }
-relevant_channels = [1, 2, 4]
-
+hyperparameters = {'criterion': 'entropy', 'max_depth': 15, 
+                    'max_features': 0.2, 'min_samples_leaf': 3
+                    ,'n_estimators': 500,'n_jobs': -1
+                    }
+                   
+                   
+relevant_channels = [2, 6,7]
 new_helmet_model = P300_model()
 new_helmet_model.create_x_y(new_helmets_rec, train_new_helmet_indexes, new=True)
-new_helmet_model.train_modelCV(GradientBoostingClassifier(), param_grid_xgb)
-# new_helmet_model.train_final_model(GradientBoostingClassifier(), hyperparameters, relevant_channels)
-# for block in test_new_helmet_indexes:
-#     new_helmet_model.create_x_y(new_helmets_rec, [block], train=False, new=True)
-#     new_helmet_model.test_model()
 
+
+if train:
+    new_helmet_model.train_modelCV(GradientBoostingClassifier(), param_grid_xgb)
+
+
+if test:
+    new_helmet_model.train_final_model(RandomForestClassifier(), hyperparameters, relevant_channels)
+    for block in test_new_helmet_indexes:
+        new_helmet_model.create_x_y(new_helmets_rec, [block], train=False, new=True)
+        happy_predicted_classes, happy_trials, happy_chance, sad_predicted_classes, sad_trials, sad_chance =  new_helmet_model.test_model()
+        print(happy_chance>sad_chance)
+print("goodbye")

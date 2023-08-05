@@ -10,7 +10,7 @@ from tqdm import tqdm
 import pickle
 import matplotlib.pyplot as plt
 import warnings
-from mne_preproccessing import  mne_preprocessing
+from mne_preprocessing import  mne_preprocessing
 
 # %% function that helps us load the data into lists of that data.
 def load_npy_series(path, base_filename, start=1, end=10, data_list=None, from_folder=False, folder_name=None):
@@ -155,8 +155,8 @@ with warnings.catch_warnings():
             _, bad_trials_df, ch_trial_rejected_df = eeg_data_list_old[block].trial_rejections(
                 rejection_critrerion_amp=reject,
                 block=block, save_res=save_res)
-        if save_res == False:
-            bad_trials_old.append(bad_trials_df)
+            if save_res == False:
+                 bad_trials_old.append(bad_trials_df)
             sum_channels_bad_old.append(ch_trial_rejected_df)
             # create list of epoched data - segmented and divted into trials : Idle, Target, Non Target
         epoched_data_list_old.append(eeg_data_list_new[block].epochs)

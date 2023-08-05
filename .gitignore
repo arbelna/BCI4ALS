@@ -4,3 +4,7 @@ sum_channels_bad_new.csv
 bad_trials_new.csv
 bad_trials_old.csv
 sum_channels_bad_old.csv
+loo_results.csv
+loo1_results.csv
+loo_results.pkl
+loo1_results.csv
