@@ -167,7 +167,7 @@ class P300_model:
         print('Training the model')
         self.clf.fit(self.X_Train, self.y_Train)
 
-    def test_model(self):
+    def test_model(self, predict_proba=False, prediction=False):
         """
         Tests the model using the test data for two categories: "happy" and "sad".
 
@@ -181,17 +181,21 @@ class P300_model:
         # Reshaping and predicting for the answer "Yes"
         self.X_Test_happy = self.X_Test_happy[self.relevant_channels, :, :].reshape(-1, self.X_Test_happy.shape[2])
         n_samples = self.X_Test_happy.shape[0]
-        not_nan_rows_happy = ~np.any(np.isnan(self.X_Test_happy), axis=1)
-        self.X_Test_happy = self.X_Test_happy[not_nan_rows_happy]
-        happy_predicted_classes_without_nan = self.clf.predict(self.X_Test_happy)
-
         # Insert default values at NaN indices
         default_value = 0.5  # Replace with your desired default value
         happy_predicted_classes = np.full(n_samples, default_value)
-        happy_predicted_classes[not_nan_rows_happy] = happy_predicted_classes_without_nan
+        not_nan_rows_happy = ~np.any(np.isnan(self.X_Test_happy), axis=1)
+        self.X_Test_happy = self.X_Test_happy[not_nan_rows_happy]
 
-        num_columns = len(happy_predicted_classes) // len(self.relevant_channels)
-        happy_matrix = happy_predicted_classes.reshape(num_columns, (len(self.relevant_channels))).T
+        if predict_proba:
+            happy_predicted_classes_without_nan = self.clf.predict_proba(self.X_Test_happy)
+            happy_predicted_classes[not_nan_rows_happy] = happy_predicted_classes_without_nan[:, 1]
+        else:
+            happy_predicted_classes_without_nan = self.clf.predict(self.X_Test_happy)
+            happy_predicted_classes[not_nan_rows_happy] = happy_predicted_classes_without_nan
+
+        num_trials_happy = len(happy_predicted_classes) // len(self.relevant_channels)
+        happy_matrix = happy_predicted_classes.reshape(num_trials_happy, (len(self.relevant_channels))).T
         happy_trials = np.round(np.mean(happy_matrix, axis=0))
         happy_matrix = np.vstack((happy_matrix, happy_trials))
         happy_chance = np.mean(happy_matrix[-1, :])
@@ -199,29 +203,31 @@ class P300_model:
         # Reshaping and predicting for the answer "No"
         self.X_Test_sad = self.X_Test_sad[self.relevant_channels, :, :].reshape(-1, self.X_Test_sad.shape[2])
         n_samples_sad = self.X_Test_sad.shape[0]
-        not_nan_rows_sad = ~np.any(np.isnan(self.X_Test_sad), axis=1)
-        self.X_Test_sad = self.X_Test_sad[not_nan_rows_sad]
-        sad_predicted_classes_without_nan = self.clf.predict(self.X_Test_sad)
-
         # Insert default values at NaN indices
         default_value_sad = 0.5  # Replace with your desired default value
         sad_predicted_classes = np.full(n_samples_sad, default_value_sad)
-        sad_predicted_classes[not_nan_rows_sad] = sad_predicted_classes_without_nan
+        not_nan_rows_sad = ~np.any(np.isnan(self.X_Test_sad), axis=1)
+        self.X_Test_sad = self.X_Test_sad[not_nan_rows_sad]
 
-        num_columns_sad = len(sad_predicted_classes) // len(self.relevant_channels)
-        sad_matrix = sad_predicted_classes.reshape(num_columns_sad, (len(self.relevant_channels))).T
+        if predict_proba:
+            sad_predicted_classes_without_nan = self.clf.predict_proba(self.X_Test_sad)
+            sad_predicted_classes[not_nan_rows_sad] = sad_predicted_classes_without_nan[:, 1]
+        else:
+            sad_predicted_classes_without_nan = self.clf.predict(self.X_Test_sad)
+            sad_predicted_classes[not_nan_rows_sad] = sad_predicted_classes_without_nan
+
+        num_trials_sad = len(sad_predicted_classes) // len(self.relevant_channels)
+        sad_matrix = sad_predicted_classes.reshape(num_trials_sad, (len(self.relevant_channels))).T
         sad_trials = np.round(np.mean(sad_matrix, axis=0))
         sad_matrix = np.vstack((sad_matrix, sad_trials))
         sad_chance = np.mean(sad_matrix[-1, :])
 
-        return happy_predicted_classes, happy_trials, happy_chance, sad_predicted_classes, sad_trials, sad_chance
+        if prediction:
+            # Comparing chances and returning result
+            if happy_chance > sad_chance:
+                return True
+            else:
+                return False
 
-        # Comparing chances and returning result
-        # if happy_chance > sad_chance:
-        #     print('Yes')
-        #     return 1
-        # elif happy_chance < sad_chance:
-        #     print('No')
-        #     return 0
-        # else:
-        #     return None
+        else:
+            return happy_predicted_classes, happy_trials, happy_chance, sad_predicted_classes, sad_trials, sad_chance
