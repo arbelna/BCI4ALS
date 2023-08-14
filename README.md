@@ -33,7 +33,7 @@
       </ul>
     </li>
     <li>
-      <a href="#How to use">Getting Started</a>
+      <a href="#Getting Started">Getting Started</a>
       <ul>
         <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#installation">Installation</a></li>
@@ -57,7 +57,7 @@ Here we present you with our year long work where we developed a entire system f
 - [OpenBCI GUI](https://github.com/OpenBCI/OpenBCI_GUI)
 
 
-<!-- GETTING STARTED -->
+<!-- Getting Started -->
 ## Getting Started
 
 To begin using this project, follow the steps below:
