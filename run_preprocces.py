@@ -69,10 +69,10 @@ def load_csv_series(path, base_filename, start=1, end=10, df_list=None, from_fol
 
 # %% define rather you want to create plot, or save a pickle of
 # all the epochs list ,if to remove bad records from  the new helmet records.
-create_plots = False
-save_pickle = True
+create_plots = True
+save_pickle = False
 remove_new_bad_records = False
-trial_rejection = True
+trial_rejection = False
 save_res = False # save results of each bad trial individually
 also_old = False # also run creat epochs for the old helmet
 indexes_to_remove = [2,3,7,14,20,21,26,27] #indexes of bad records [3,4,8,15,21,22,27,28]

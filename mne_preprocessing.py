@@ -201,9 +201,9 @@ class mne_preprocessing():
             epochs = self.epochs
         
         #1)
-        fig = epochs.plot(show=False)
-        fig.savefig(f"{dir}\\general_idea.png")
-        plt.close(fig)
+        # fig = epochs.plot(show=False)
+        # fig.savefig(f"{dir}\\general_idea.png")
+        # plt.close(fig)
         
         #2)
         non_targetAVG = epochs["non-target"].average()
@@ -246,8 +246,8 @@ class mne_preprocessing():
         plt.close(fig)
         #11)
         fig = self.eeg_ica.plot_components(show = False)
-        fig[0].savefig(f"{dir}\\eeg_ica.png")
-        plt.close(fig[0])
+        fig.savefig(f"{dir}\\eeg_ica.png")
+        plt.close(fig)
         for pick in range(0,len(epochs.ch_names)-1):
             #6)
             fig  = epochs['target'].plot_image(pick, show=False)[0]
