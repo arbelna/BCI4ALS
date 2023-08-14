@@ -24,7 +24,7 @@ class mne_preprocessing():
     attributes:
     self.info - the info of the data for creating raw.mne object
     self.raw_data - the raw data with no filtering (raw.mne object)
-    self.filterd_data - raw data after filtering (raw.mne object)
+    self.filtered_data - raw data after filtering (raw.mne object)
     slef.markers - markers of the data from the markers channel (numpy array) - use for segmentation
     self.event_table - the event table of the data created from the markers (pandas dataframe)
     self.annotations - the annotations of the data created from the event table (mne annotations)   
@@ -37,10 +37,10 @@ class mne_preprocessing():
         self.raw_data = mne.io.RawArray(data, self.info)
         montage = mne.channels.make_standard_montage('standard_1020')
         self.raw_data.set_montage(montage)
-        filterd_data = self.raw_data.copy().filter(l_freq = lowcut, h_freq = highcut, verbose=False)
-        self.filterd_data = filterd_data.notch_filter(freqs = notch, verbose=False)
+        filtered_data = self.raw_data.copy().filter(l_freq = lowcut, h_freq = highcut, verbose=False)
+        self.filtered_data = filtered_data.notch_filter(freqs = notch, verbose=False)
         if re_refrence:
-            self.filterd_data, _ = mne.set_eeg_reference(self.filterd_data.copy(), 'average')
+            self.filtered_data, _ = mne.set_eeg_reference(self.filtered_data.copy(), 'average')
         self.markers = markers
         self.event_table = self.create_event_table(markers, sfreq, event_table)
         self.set_annotations_from_event_table()
@@ -159,7 +159,7 @@ class mne_preprocessing():
         #get evenets and event_id from the annotations
         events, event_id = mne.events_from_annotations(self.raw_data) 
         #create the epochs object
-        epochs = mne.Epochs(self.filterd_data, events, event_id, tmin = tmin,
+        epochs = mne.Epochs(self.filtered_data, events, event_id, tmin = tmin,
                             tmax = tmax ,baseline = baseline, preload = preload,reject = reject)
         
         # remove the baseline data from the epochs
@@ -268,7 +268,7 @@ class mne_preprocessing():
             plt.close(fig)
             
             #12)
-            fig =  self.eeg_ica.plot_properties(self.filterd_data, picks=pick,show = False)
+            fig =  self.eeg_ica.plot_properties(self.filtered_data, picks=pick,show = False)
             fig[0].savefig(f"{dir}\\exp_{exp_num}_ica_eeg_component_{pick}.png")
             plt.close(fig[0])
             
@@ -313,7 +313,7 @@ class mne_preprocessing():
         This function removes the ica components that are not brain related automatically
         """
         #set a copy of the filtered data
-        data = self.filterd_data.copy() 
+        data = self.filtered_data.copy() 
         #creat an mne ICA object
         ica_obj = mne.preprocessing.ICA(n_components=len(data.ch_names)-1, random_state=97
                                         , max_iter="auto",method="infomax",fit_params=dict(extended=True),)
@@ -329,7 +329,7 @@ class mne_preprocessing():
         #aplly the ICA and exclude the not brain related components on the data(rec = reconstract)
         rec_data = ica.apply(data, exclude=exclude_idx)
         #set as attributes the results.
-        self.filterd_data = rec_data
+        self.filtered_data = rec_data
         self.eeg_ica = ica
         self.ica_labels = ic_labels
         
