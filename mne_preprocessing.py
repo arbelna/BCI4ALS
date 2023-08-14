@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from eeg import Eeg as eeg
 import pandas as pd
-
+from mne_icalabel import label_components
 class mne_preprocessing():
     """
     this class is used to preproccess the data using mne library and our eeg class
@@ -28,6 +28,7 @@ class mne_preprocessing():
     slef.markers - markers of the data from the markers channel (numpy array) - use for segmentation
     self.event_table - the event table of the data created from the markers (pandas dataframe)
     self.annotations - the annotations of the data created from the event table (mne annotations)   
+    self.Auto_ica_removal - a function that removes the ica components that are not relevant to the data
     """
     def __init__(self,data,event_table,new,sfreq = 125,notch =50 ,highcut = 40 ,lowcut = 0.5,re_refrence = False):
         self.new = new 
@@ -43,8 +44,8 @@ class mne_preprocessing():
         self.set_annotations_from_event_table()
         filtered_data = self.raw_data.copy().notch_filter(freqs = notch, verbose=False)
         self.filterd_data = filtered_data.filter(l_freq = lowcut, h_freq = highcut, verbose=False)
-        eeg_ica = mne.preprocessing.ICA(n_components=len(self.filterd_data.ch_names)-1, random_state=97, max_iter=800)
-        self.eeg_ica = eeg_ica.fit(self.filterd_data)
+        self.Auto_ica_removal()
+        
     def create_event_table(self,markers, sfreq, target_table):
         """
         this functions use the markers and the target table to create the event table
@@ -307,3 +308,27 @@ class mne_preprocessing():
         self.epochs = epochs
         return epochs,bad_trials_df, ch_trial_rejected_df
     
+    def Auto_ica_removal(self):
+        """
+        This function removes the ica components that are not brain related automatically
+        """
+        #set a copy of the filtered data
+        data = self.filterd_data.copy() 
+        #creat an mne ICA object
+        ica_obj = mne.preprocessing.ICA(n_components=len(data.ch_names)-1, random_state=97
+                                        , max_iter="auto",method="infomax",fit_params=dict(extended=True),)
+        #fit the ica object to the data
+        ica = ica_obj.fit(data)
+        #Use mne_icalabels to label which components are brain and which are not(return,labels, and probablity)
+        ic_labels = label_components(data ,ica, method="iclabel") 
+        #extract the lables
+        labels = ic_labels["labels"]
+        #exlude the components that are not brain related
+        exclude_idx = [idx for idx, label in enumerate(labels) if label not in ["brain", "other"]]
+        #aplly the ICA and exclude the not brain related components on the data(rec = reconstract)
+        rec_data = ica.apply(data, exclude=exclude_idx)
+        #set as attributes the results.
+        self.filterd_data = rec_data
+        self.eeg_ica = ica
+        self.ica_labels = ic_labels
+        

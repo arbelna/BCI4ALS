@@ -9,8 +9,8 @@ with open('new_helmets_epochs.pkl', 'rb') as f:
 test_new_helmet_indexes = [4, 6, 9, 10]
 train_new_helmet_indexes = [0, 1, 2, 3, 5, 7, 8, 11]
 
-train  = False
-test = True
+train  = True
+test = False
 # Define your hyperparameters grid
 param_grid_randomforest = {
     'n_estimators': [500, 1000, 1500],
@@ -42,9 +42,9 @@ new_helmet_model.create_x_y(new_helmets_rec, train_new_helmet_indexes, new=True)
 
 
 if train:
-    new_helmet_model.train_modelCV(GradientBoostingClassifier(), param_grid_xgb)
+ model_list   = new_helmet_model.train_modelCV(GradientBoostingClassifier(), param_grid_xgb,min_channels=1, max_channels=2)
 
-
+ 
 if test:
     new_helmet_model.train_final_model(RandomForestClassifier(), hyperparameters, relevant_channels)
     for block in test_new_helmet_indexes:

@@ -86,8 +86,8 @@ class P300_model:
 
         n_samples = X_Train.shape[2]
         # Total number of odd-sized combinations of channels
-        total_combinations = math.comb(n_channels, 3) + math.comb(n_channels, 5)
-
+        total_combinations = math.comb(n_channels, 1) # + math.comb(n_channels, 5)
+        model_list = []
         # Iterate through odd-sized combinations of channels
         for r in range(min_channels, max_channels, 2):
             for channels in tqdm(combinations(range(n_channels), r), total=total_combinations,
@@ -116,7 +116,7 @@ class P300_model:
                 # Get the best hyperparameters
                 best_hyperparams = grid_search.best_params_
                 print(f"Best hyperparameters: {best_hyperparams}")
-
+                model_list.append(grid_search.best_estimator_)
                 # Get the accuracy scores
                 train_accuracy = grid_search.best_estimator_.score(X_train, y_train)
                 validation_accuracy = grid_search.best_estimator_.score(X_test, y_test)
@@ -135,7 +135,7 @@ class P300_model:
 
                 # Save the DataFrame to a CSV file after each combination
                 results_df.to_csv('grid_search_results.csv', index=False)
-
+        return model_list
     def train_final_model(self, clf, hyperparameters, relevant_channels=None):
         """
            Trains the final model using the given classifier, hyperparameters, and relevant channels.
