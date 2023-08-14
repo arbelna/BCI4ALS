@@ -33,7 +33,7 @@
       </ul>
     </li>
     <li>
-      <a href="#Getting Started">Getting Started</a>
+      <a href="#Getting Started">Getting Started</a></li>
       <ul>
         <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#installation">Installation</a></li>
