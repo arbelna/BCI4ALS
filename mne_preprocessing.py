@@ -37,13 +37,13 @@ class mne_preprocessing():
         self.raw_data = mne.io.RawArray(data, self.info)
         montage = mne.channels.make_standard_montage('standard_1020')
         self.raw_data.set_montage(montage)
+        filterd_data = self.raw_data.copy().filter(l_freq = lowcut, h_freq = highcut, verbose=False)
+        self.filterd_data = filterd_data.notch_filter(freqs = notch, verbose=False)
         if re_refrence:
-            self.raw_data, _ = mne.set_eeg_reference(self.raw_data.copy(), 'average')
+            self.filterd_data, _ = mne.set_eeg_reference(self.filterd_data.copy(), 'average')
         self.markers = markers
         self.event_table = self.create_event_table(markers, sfreq, event_table)
         self.set_annotations_from_event_table()
-        filtered_data = self.raw_data.copy().notch_filter(freqs = notch, verbose=False)
-        self.filterd_data = filtered_data.filter(l_freq = lowcut, h_freq = highcut, verbose=False)
         self.Auto_ica_removal()
         
     def create_event_table(self,markers, sfreq, target_table):
@@ -325,6 +325,7 @@ class mne_preprocessing():
         labels = ic_labels["labels"]
         #exlude the components that are not brain related
         exclude_idx = [idx for idx, label in enumerate(labels) if label not in ["brain", "other"]]
+        print(f"ICA found {len(exclude_idx)} components as not brain related")
         #aplly the ICA and exclude the not brain related components on the data(rec = reconstract)
         rec_data = ica.apply(data, exclude=exclude_idx)
         #set as attributes the results.
