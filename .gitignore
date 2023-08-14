@@ -8,3 +8,4 @@ loo_results.csv
 loo1_results.csv
 loo_results.pkl
 loo1_results.csv
+__pycache__

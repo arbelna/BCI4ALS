@@ -71,7 +71,7 @@ def load_csv_series(path, base_filename, start=1, end=10, df_list=None, from_fol
 # all the epochs list ,if to remove bad records from  the new helmet records.
 create_plots = False
 save_pickle = True
-remove_new_bad_records = True
+remove_new_bad_records = False
 trial_rejection = True
 save_res = False # save results of each bad trial individually
 also_old = False # also run creat epochs for the old helmet
