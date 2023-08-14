@@ -13,11 +13,8 @@
   </a>
 
   <h3 align="center">BCI for ALS Using EEG P300 Paradigm</h3>
-
   <p align="center">
     A Brain-Computer Interface (BCI) designed to detect "Yes" or "No" decisions based on visual  and auditory stimuli.
-    <br />
-    <br />
     <br />
     <a href="https://github.com/arbelna/BCI4ALS">Report Bug</a>
     ·
@@ -48,7 +45,6 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-
 The project aim is to empower individuals with ALS, facilitating communication through the development of a Brain-Computer Interface (BCI) that utilizes EEG technology. By leveraging the P300 paradigm, our system can interpret whether a user is signaling "yes" or "no" in response to visual and auditory stimuli, enhancing their ability to communicate effectively.
 Here we present you with our year long work where we developed a entire system from scratch from data collecting through preproccesing and training and searching the best model for the task. 
 
